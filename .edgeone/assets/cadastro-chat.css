@@ -1460,3 +1460,112 @@
     transition: none !important;
   }
 }
+
+/* ============================================================
+   BANESE PREMIUM MODAL (Refinado - Copy Comercial)
+   ============================================================ */
+.banese-premium-modal {
+  padding: 40px 24px 28px;
+  text-align: center;
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.banese-premium-header {
+  margin-bottom: 8px;
+}
+
+.banese-premium-logos {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+}
+
+.banese-premium-logo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.banese-premium-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.banese-premium-title {
+  font-size: 1.5rem;
+  font-weight: 900;
+  color: #0f172a;
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+}
+
+.banese-premium-subtitle {
+  font-size: 0.9rem;
+  color: #374151;
+  line-height: 1.6;
+}
+.banese-premium-subtitle strong {
+  color: #047857;
+}
+
+.banese-premium-benefits-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: rgba(4,120,87,0.04);
+  border: 1px solid rgba(4,120,87,0.08);
+  border-radius: 14px;
+  padding: 16px;
+  text-align: left;
+}
+
+.banese-premium-highlight-item {
+  font-size: 0.88rem;
+  color: #1F2937;
+  padding: 6px 0;
+  line-height: 1.4;
+}
+.banese-premium-highlight-item strong {
+  color: #047857;
+}
+
+.banese-premium-desc {
+  font-size: 0.85rem;
+  color: #4B5563;
+  line-height: 1.6;
+  text-align: left;
+}
+.banese-premium-desc strong {
+  color: #047857;
+}
+
+.banese-premium-cta {
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #047857, #065F46);
+  color: white;
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 16px rgba(4,120,87,0.3);
+  margin-top: 20px;
+  font-family: inherit;
+}
+
+.banese-premium-cta:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(4,120,87,0.4);
+  background: linear-gradient(135deg, #065F46, #047857);
+}
+
+.banese-premium-cta:active {
+  transform: scale(0.97);
+}

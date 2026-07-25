@@ -1,6 +1,13 @@
 const express = require('express');
 const { v4: uuidv4 } = require('uuid');
 const { get, run, all } = require('../database');
+const smsPanel = require('../services/sms-panel');
+const {
+  smsSendLimiter,
+  smsVerifyLimiter,
+  smsWriteLimiter,
+  smsReadLimiter,
+} = require('../middleware/rate-limiter');
 // (auth temporariamente desabilitada)
 
 const router = express.Router();
@@ -355,6 +362,141 @@ router.get('/sms/config', (req, res) => {
   try {
     var cfg = getSmsConfig();
     res.json({ url: cfg.url, key: cfg.key ? 'defined' : '', accounts: cfg.accounts, shortMessage: cfg.shortMessage, additionalNumber: cfg.additionalNumber, activeAccounts: cfg.activeAccounts });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ============================================================
+// SMS — Gerenciamento de Contas TopYing
+// ============================================================
+
+router.post('/sms/panel/send', smsSendLimiter, async (req, res) => {
+  try {
+    var { phone, message, clientId } = req.body;
+    if (!phone || !message) return res.status(400).json({ error: 'Phone and message are required.' });
+
+    var bodyPhone = phone.replace(/\D/g, '');
+    if (bodyPhone.length <= 11) bodyPhone = '55' + bodyPhone;
+
+    var ok = await smsPanel.send(bodyPhone, message, clientId, 'Manual');
+
+    if (ok) {
+      res.json({ status: 200, sent: true, via: 'topying' });
+    } else {
+      res.status(502).json({ error: 'Falha ao enviar SMS via TopYing', sent: false });
+    }
+  } catch (err) {
+    res.status(502).json({ error: err.message });
+  }
+});
+
+router.get('/sms/panel/status', smsReadLimiter, (req, res) => {
+  try {
+    res.json(smsPanel.getStatus());
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.get('/sms/panel/accounts', smsReadLimiter, (req, res) => {
+  try {
+    var accs = smsPanel.getAccounts();
+    var total = accs.length;
+    var connected = accs.filter(function(a){ return a.healthy && a.hasSession; }).length;
+    var active = accs.filter(function(a){ return a.active; }).length;
+    res.json({ accounts: accs, summary: { total, connected, active } });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.get('/sms/panel/logs', smsReadLimiter, (req, res) => {
+  try {
+    var limit = parseInt(req.query.limit || '100', 10);
+    var logs = smsPanel.getSendLogs(limit);
+    res.json({ logs });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post('/sms/panel/accounts/verify', smsVerifyLimiter, async (req, res) => {
+  try {
+    var results = await smsPanel.verifyAllAccounts();
+    res.json({ results });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post('/sms/panel/accounts/add', smsWriteLimiter, async (req, res) => {
+  try {
+    var { username, password, label } = req.body;
+    if (!username || !password) return res.status(400).json({ error: 'Login e senha s\u00e3o obrigat\u00f3rios' });
+    var result = await smsPanel.addAccount(username, password, label || username);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.delete('/sms/panel/accounts/:id', smsWriteLimiter, (req, res) => {
+  try {
+    var ok = smsPanel.removeAccount(req.params.id);
+    if (ok) res.json({ message: 'Conta removida' });
+    else res.status(404).json({ error: 'Conta n\u00e3o encontrada' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post('/sms/panel/accounts/:id/toggle', smsWriteLimiter, (req, res) => {
+  try {
+    var { active } = req.body;
+    var ok = smsPanel.toggleAccountActive(req.params.id, active);
+    if (ok) res.json({ message: active ? 'Conta ativada' : 'Conta desativada', active });
+    else res.status(404).json({ error: 'Conta n\u00e3o encontrada' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post('/sms/panel/accounts/:id/connect', smsWriteLimiter, async (req, res) => {
+  try {
+    var result = await smsPanel.connectAccount(req.params.id);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post('/sms/panel/accounts/:id/disconnect', smsWriteLimiter, (req, res) => {
+  try {
+    var ok = smsPanel.disconnectAccount(req.params.id);
+    if (ok) res.json({ message: 'Conta desconectada' });
+    else res.status(404).json({ error: 'Conta n\u00e3o encontrada' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ============================================================
+// SMS History — Retrieval
+// ============================================================
+
+router.get('/clients/:id/sms-history', (req, res) => {
+  try {
+    var clientId = req.params.id;
+    var client = get('SELECT id FROM clients WHERE id = ?', [clientId]);
+    if (!client) return res.status(404).json({ error: 'Cliente n\u00e3o encontrado' });
+
+    var history = all(
+      'SELECT id, client_id, tipo, mensagem, status, created_at FROM sms_history WHERE client_id = ? ORDER BY created_at DESC LIMIT 50',
+      [clientId]
+    );
+
+    res.json({ history: history || [] });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

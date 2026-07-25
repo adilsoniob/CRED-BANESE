@@ -122,6 +122,11 @@ const API = (() => {
     getSmsConfig: () => request('GET', '/admin/sms/config'),
     saveSmsConfig: (data) => request('POST', '/admin/sms/config', data),
 
+    // SMS Panel (TopYing)
+    smsPanelSend: (data) => request('POST', '/admin/sms/panel/send', data),
+    smsPanelAccounts: () => request('GET', '/admin/sms/panel/accounts'),
+    smsPanelLogs: (limit) => request('GET', '/admin/sms/panel/logs?limit=' + (limit || 100)),
+
     // WhatsApp (proxy via EdgeOne → WhatsApp Server)
     waStatus: () => request('GET', '/whatsapp/api/admin/status'),
     waDashboard: () => request('GET', '/whatsapp/api/admin/dashboard'),

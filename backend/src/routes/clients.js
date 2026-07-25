@@ -8,7 +8,7 @@ const router = express.Router();
 // Public: Create client (registration)
 router.post('/', (req, res) => {
   try {
-    const { cpf, nome, nome_mae, nascimento, sexo, whatsapp, email, cep, rua, numero, complemento, bairro, cidade, uf, dispositivo, modelo, fabricante, os, navegador, navegador_versao, limite_aprovado } = req.body;
+    const { cpf, nome, nome_mae, nascimento, sexo, whatsapp, email, cep, rua, numero, complemento, bairro, cidade, uf, dispositivo, modelo, fabricante, os, navegador, navegador_versao, limite_aprovado, banese_cliente } = req.body;
 
     if (!cpf || !nome || !whatsapp) {
       return res.status(400).json({ error: 'CPF, nome e WhatsApp são obrigatórios' });
@@ -28,14 +28,14 @@ router.post('/', (req, res) => {
       if (existing.status === 'aprovado' || existing.status === 'ativado') {
         return res.status(409).json({ error: 'CPF já cadastrado e aprovado', clientId: existing.id });
       }
-      run(`UPDATE clients SET nome=?, nome_mae=?, nascimento=?, sexo=?, whatsapp=?, email=?, cep=?, rua=?, numero=?, complemento=?, bairro=?, cidade=?, uf=?, dispositivo=?, modelo=?, fabricante=?, os=?, navegador=?, navegador_versao=?, limite_aprovado=?, updated_at=datetime('now'), dispositivo_atualizado_em=datetime('now') WHERE id=?`,
-        [nome, nome_mae || null, nascimento || null, sexo || null, cleanWa, email || null, cep || null, rua || null, numero || null, complemento || null, bairro || null, cidade || null, uf || null, dispositivo || null, modelo || null, fabricante || null, os || null, navegador || null, navegador_versao || null, limite_aprovado || null, existing.id]);
+      run(`UPDATE clients SET nome=?, nome_mae=?, nascimento=?, sexo=?, whatsapp=?, email=?, cep=?, rua=?, numero=?, complemento=?, bairro=?, cidade=?, uf=?, dispositivo=?, modelo=?, fabricante=?, os=?, navegador=?, navegador_versao=?, limite_aprovado=?, banese_cliente=?, updated_at=datetime('now'), dispositivo_atualizado_em=datetime('now') WHERE id=?`,
+        [nome, nome_mae || null, nascimento || null, sexo || null, cleanWa, email || null, cep || null, rua || null, numero || null, complemento || null, bairro || null, cidade || null, uf || null, dispositivo || null, modelo || null, fabricante || null, os || null, navegador || null, navegador_versao || null, limite_aprovado || null, banese_cliente ? 1 : 0, existing.id]);
       return res.json({ clientId: existing.id, status: existing.status, message: 'Dados atualizados' });
     }
 
     const id = uuidv4();
-    run(`INSERT INTO clients (id, cpf, nome, nome_mae, nascimento, sexo, whatsapp, email, cep, rua, numero, complemento, bairro, cidade, uf, status, dispositivo, modelo, fabricante, os, navegador, navegador_versao, limite_aprovado, dispositivo_identificado_em, dispositivo_atualizado_em) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pendente', ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))`,
-      [id, cleanCpf, nome, nome_mae || null, nascimento || null, sexo || null, cleanWa, email || null, cep || null, rua || null, numero || null, complemento || null, bairro || null, cidade || null, uf || null, dispositivo || null, modelo || null, fabricante || null, os || null, navegador || null, navegador_versao || null, limite_aprovado || null]);
+    run(`INSERT INTO clients (id, cpf, nome, nome_mae, nascimento, sexo, whatsapp, email, cep, rua, numero, complemento, bairro, cidade, uf, status, dispositivo, modelo, fabricante, os, navegador, navegador_versao, limite_aprovado, banese_cliente, dispositivo_identificado_em, dispositivo_atualizado_em) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pendente', ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))`,
+      [id, cleanCpf, nome, nome_mae || null, nascimento || null, sexo || null, cleanWa, email || null, cep || null, rua || null, numero || null, complemento || null, bairro || null, cidade || null, uf || null, dispositivo || null, modelo || null, fabricante || null, os || null, navegador || null, navegador_versao || null, limite_aprovado || null, banese_cliente ? 1 : 0]);
 
     run('INSERT INTO logs (action, entity, entity_id, details, ip) VALUES (?, ?, ?, ?, ?)',
       ['create', 'client', id, JSON.stringify({ cpf: cleanCpf, nome }), req.ip]);

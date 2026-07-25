@@ -533,6 +533,7 @@
               <div><strong>Limite:</strong> ${c.limite_aprovado ? fmtMoney(c.limite_aprovado) : '—'}</div>
               <div><strong>Produto:</strong> ${c.produto_escolhido || '—'}</div>
               <div><strong>Credencial:</strong> ${c.senha_visivel ? '<span style="color:#10B981;font-weight:600;">✅ ' + c.senha_visivel + '</span>' : c.senha_hash ? '<span style="color:#10B981;font-weight:600;">✅ Criada</span>' : '<span style="color:#94a3b8;">—</span>'}</div>
+              <div><strong>Cliente Banese:</strong> ${c.banese_cliente ? '<span style="color:#047857;font-weight:700;background:rgba(4,120,87,0.1);padding:2px 10px;border-radius:6px;font-size:0.8rem;">✅ Sim</span>' : '<span style="color:#94a3b8;">❌ Não</span>'}</div>
               <div><strong>Download do aplicativo:</strong> ${c.app_download_clicked_at ? '<span style="color:#10B981;font-weight:600;">🟢 Sim</span>' : '<span style="color:#94a3b8;">⚪ Não</span>'}</div>
               ${c.app_download_clicked_at ? '<div style="font-size:0.78rem;color:var(--color-text-muted);padding-left:16px;">Status: ' + (c.app_download_status === 'aplicativo_indisponivel' ? '<span style="color:#f59e0b;">Aplicativo indisponível</span>' : '<span style="color:#10B981;">Download iniciado</span>') + ' · Último clique: ' + fmtDateTime(c.app_download_clicked_at) + '</div>' : ''}
               <div><strong>Cadastro:</strong> ${fmtDateTime(c.created_at)}</div>
@@ -1110,110 +1111,553 @@
 
   async function renderSmsPage(container) {
     var cfg;
-    try { cfg = await API.getSmsConfig(); } catch { cfg = { url: '', key: '', accounts: [], shortMessage: '', additionalNumber: '', activeAccounts: [] }; }
+    try { cfg = await API.getSmsConfig(); } catch { cfg = { shortMessage: '', additionalNumber: '', panel: 'TopYing' }; }
 
-    var accList = cfg.accounts && cfg.accounts.length ? cfg.accounts : ['0122C371A', '0122C371B', '0122C371C', '0122C371D'];
-    var activeAccs = cfg.activeAccounts && cfg.activeAccounts.length ? cfg.activeAccounts : accList;
+    var selectedAccountId = null;
+    var refreshTimer = null;
 
     container.innerHTML = `
       <header class="admin-header">
-        <h1 class="admin-header__title">📨 Envio de SMS</h1>
-        <span style="font-size:0.8rem;color:var(--color-text-muted);">${cfg.url ? '✅ Conectado' : '⚠️ Configure abaixo'}</span>
+        <h1 class="admin-header__title">📨 Gerenciamento de SMS</h1>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <span id="topBarStats" style="font-size:0.75rem;color:var(--color-text-muted);font-family:monospace;"></span>
+          <button id="verifyAccountsBtn" class="btn btn--outline btn--sm">🔍 Verificar Contas</button>
+          <button id="addAccountBtn" class="btn btn--primary btn--sm">+ Adicionar Conta</button>
+        </div>
       </header>
 
-      <!-- Config -->
-      <section class="admin-card admin-form" style="margin-bottom:var(--space-md);">
-        <h2 class="admin-form__section-title">⚙️ Conexão com o Sistema de SMS</h2>
-        <div class="form-grid">
-          <div class="form-group form-group--full">
-            <label>URL do Sistema SMS</label>
-            <input type="url" id="smsSystemUrl" value="${cfg.url}" placeholder="https://sms-sistema.up.railway.app">
-          </div>
-          <div class="form-group form-group--full">
-            <label>API Key</label>
-            <input type="password" id="smsApiKey" value="" placeholder="${cfg.key ? '******** (definida)' : 'Digite a API key'}">
-          </div>
-          <div class="form-group form-group--full">
-            <label>Contas de SMS (uma por linha)</label>
-            <textarea id="smsAccountsConfig" rows="4" style="width:100%;font-family:monospace;font-size:0.8125rem;padding:10px;border-radius:8px;border:1px solid #cbd5e1;background:#fff;color:#1e293b;">${accList.join('\n')}</textarea>
-          </div>
-        </div>
-        <button id="btnSaveSmsConfig" class="btn btn--primary" style="margin-top:var(--space-lg);">SALVAR CONFIGURAÇÃO</button>
-        <button id="btnTestConnection" class="btn btn--ghost" style="margin-top:var(--space-lg);margin-left:8px;">🔌 Testar Conexão</button>
-      </section>
+      <!-- Status Cards Row -->
+      <div class="admin-grid" style="grid-template-columns:repeat(auto-fit, minmax(150px, 1fr));margin-bottom:var(--space-md);">
+        <article class="admin-card" style="background:linear-gradient(135deg,rgba(59,130,246,0.12),rgba(59,130,246,0.05));border:1px solid rgba(59,130,246,0.2);">
+          <div class="admin-card__label">📡 Total Contas</div>
+          <div class="admin-card__value" id="smsTotalAccounts" style="font-size:1.3rem;">—</div>
+        </article>
+        <article class="admin-card" style="background:linear-gradient(135deg,rgba(16,185,129,0.12),rgba(16,185,129,0.05));border:1px solid rgba(16,185,129,0.2);">
+          <div class="admin-card__label">🟢 Conectadas</div>
+          <div class="admin-card__value" id="smsConnectedAccounts" style="font-size:1.3rem;color:#16C65B;">—</div>
+        </article>
+        <article class="admin-card" style="background:linear-gradient(135deg,rgba(245,158,11,0.12),rgba(245,158,11,0.05));border:1px solid rgba(245,158,11,0.2);">
+          <div class="admin-card__label">✅ Ativas</div>
+          <div class="admin-card__value" id="smsActiveAccounts" style="font-size:1.3rem;color:#f59e0b;">—</div>
+        </article>
+        <article class="admin-card" style="background:linear-gradient(135deg,rgba(139,92,246,0.12),rgba(139,92,246,0.05));border:1px solid rgba(139,92,246,0.2);">
+          <div class="admin-card__label">📨 Envios Hoje</div>
+          <div class="admin-card__value" id="smsTodayCount" style="font-size:1.3rem;color:#a78bfa;">0</div>
+        </article>
+        <article class="admin-card" style="background:linear-gradient(135deg,rgba(236,72,153,0.12),rgba(236,72,153,0.05));border:1px solid rgba(236,72,153,0.2);">
+          <div class="admin-card__label">🔄 Refresh</div>
+          <div class="admin-card__value" id="smsRefreshIndicator" style="font-size:0.8rem;color:#94a3b8;font-weight:400;">30s</div>
+        </article>
+      </div>
 
-      <!-- Active Accounts (checkboxes) -->
-      <section class="admin-card admin-form" style="margin-bottom:var(--space-md);">
-        <h2 class="admin-form__section-title">📱 Contas Ativas para Envio Automático</h2>
-        <p style="font-size:0.8rem;color:var(--color-text-muted);margin-bottom:12px;">Marque as contas que serão usadas no envio automático de SMS. Clique em "Salvar Contas" para confirmar.</p>
-        <div id="smsAccountsCheckboxes" style="display:flex;flex-wrap:wrap;gap:10px;">
-          ${accList.map(function(a) {
-            var checked = activeAccs.includes(a);
-            return '<label style="display:flex;align-items:center;gap:6px;cursor:pointer;background:rgba(255,255,255,0.04);padding:8px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);">' +
-              '<input type="checkbox" class="sms-account-cb" value="' + a + '" ' + (checked ? 'checked' : '') + ' style="width:16px;height:16px;cursor:pointer;">' +
-              '<span style="font-size:0.85rem;font-family:monospace;">' + a + '</span>' +
-            '</label>';
-          }).join('')}
-        </div>
-        <button id="btnSaveActiveAccounts" class="btn btn--primary" style="margin-top:var(--space-lg);">💾 SALVAR CONTAS ATIVAS</button>
-      </section>
+      <!-- Main Content: Accounts Card + Side Panel -->
+      <div style="display:grid;grid-template-columns:1fr 300px;gap:var(--space-md);margin-bottom:var(--space-md);">
 
-      <!-- SMS Curto (auto envio na aprovação) -->
-      <section class="admin-card admin-form" style="margin-bottom:var(--space-md);">
-        <h2 class="admin-form__section-title">📨 SMS Curto — Envio Automático</h2>
-        <p style="font-size:0.8rem;color:var(--color-text-muted);margin-bottom:12px;background:rgba(59,130,246,0.08);padding:12px;border-radius:8px;border:1px solid rgba(59,130,246,0.2);">
-          Esta mensagem curta (máx. 160 caracteres) será enviada <strong>automaticamente</strong> para o cliente e para o número adicional quando um cliente for <strong>aprovado</strong>.
-          Use <code>{NOME}</code> e <code>{LIMITE}</code> como placeholders.
-        </p>
-        <div class="form-grid">
-          <div class="form-group form-group--full">
-            <label>Mensagem curta</label>
-            <textarea id="smsShortMessage" maxlength="160" rows="3" style="width:100%;font-family:monospace;font-size:0.8125rem;padding:10px;border-radius:8px;border:1px solid #cbd5e1;background:#fff;color:#1e293b;" placeholder="Ex: Olá {NOME}, seu crédito de R$ {LIMITE} foi aprovado!">${(cfg.shortMessage || '').replace(/"/g,'&quot;')}</textarea>
-            <div id="smsShortCounter" style="text-align:right;font-size:0.75rem;color:var(--color-text-muted);margin-top:2px;">0/160</div>
+        <!-- Accounts Table Card -->
+        <section class="admin-card" style="overflow:hidden;padding:0;">
+          <div style="padding:var(--space-md) var(--space-md) 0;">
+            <h2 class="admin-form__section-title" style="margin:0;font-size:0.9rem;">📋 Contas de SMS</h2>
           </div>
-          <div class="form-group form-group--full">
-            <label>Número adicional para envio (com DDD, apenas números)</label>
-            <input type="text" id="smsAdditionalNumber" value="${cfg.additionalNumber || ''}" placeholder="Ex: 5511999999999">
-            <div style="font-size:0.75rem;color:var(--color-text-muted);margin-top:4px;">Se preenchido, o SMS também será enviado para este número.</div>
+          <div class="admin-table-wrap" style="max-height:320px;overflow-y:auto;">
+            <table class="admin-table" style="font-size:0.78rem;">
+              <thead>
+                <tr>
+                  <th style="width:50px;">Ativa</th>
+                  <th>Login</th>
+                  <th style="width:130px;">Status</th>
+                  <th style="width:100px;">Últ. Verif.</th>
+                  <th style="width:70px;text-align:center;">Hoje</th>
+                  <th style="width:170px;text-align:right;">Ações</th>
+                </tr>
+              </thead>
+              <tbody id="accountsTableBody">
+                <tr><td colspan="6" style="padding:32px;text-align:center;color:var(--color-text-muted);">Carregando contas...</td></tr>
+              </tbody>
+            </table>
           </div>
-        </div>
-        <button id="btnSaveShortMessage" class="btn btn--primary" style="margin-top:var(--space-lg);">💾 SALVAR SMS CURTO</button>
-      </section>
+        </section>
 
-      <!-- Send SMS -->
-      <section class="admin-card admin-form" style="margin-bottom:var(--space-md);">
-        <h2 class="admin-form__section-title">📤 Enviar SMS Manual</h2>
-        <div class="form-grid">
-          <div class="form-group form-group--full">
-            <label>Telefone (com DDD, apenas números)</label>
-            <input type="text" id="smsPhone" placeholder="5511999999999">
+        <!-- Side Panel: Account Details -->
+        <section class="admin-card" id="sidePanel" style="display:flex;flex-direction:column;padding:var(--space-md);">
+          <h2 class="admin-form__section-title" style="margin:0 0 var(--space-sm);font-size:0.85rem;">📄 Detalhes da Conta</h2>
+          <div id="sidePanelContent" style="flex:1;display:flex;align-items:center;justify-content:center;">
+            <div style="text-align:center;padding:24px 0;color:var(--color-text-muted);font-size:0.78rem;">
+              <div style="font-size:2.5rem;margin-bottom:8px;">👆</div>
+              Selecione uma conta<br>na tabela ao lado
+            </div>
           </div>
-          <div class="form-group form-group--full">
+        </section>
+
+      </div>
+
+      <!-- Bottom Row: Config + Manual Send -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-md);margin-bottom:var(--space-md);">
+
+        <!-- SMS Short Message Config -->
+        <section class="admin-card admin-form" style="padding:var(--space-md);">
+          <h2 class="admin-form__section-title" style="font-size:0.9rem;">📝 Mensagem de Aprovação (Automática)</h2>
+          <p style="font-size:0.78rem;color:var(--color-text-muted);margin-bottom:12px;line-height:1.5;">
+            Esta mensagem é enviada automaticamente quando um cliente é <strong>aprovado</strong>.
+            Use <code>{NOME}</code> e <code>{LIMITE}</code> como placeholders.
+            <br><em>Máx. 160 caracteres (SMS curto).</em>
+          </p>
+          <div class="form-group">
             <label>Mensagem</label>
-            <textarea id="smsMessage" rows="4" style="width:100%;font-family:monospace;font-size:0.8125rem;padding:10px;border-radius:8px;border:1px solid #cbd5e1;background:#fff;color:#1e293b;" placeholder="Digite a mensagem SMS..."></textarea>
+            <textarea id="smsShortMessage" maxlength="160" rows="3" style="width:100%;font-family:monospace;font-size:0.82rem;padding:10px 12px;border-radius:8px;border:1px solid var(--color-gray-200);background:var(--color-gray-50, #F7F9FC);color:var(--color-text);resize:vertical;" placeholder="Ex: Olá {NOME}, seu crédito de R$ {LIMITE} foi aprovado!">${(cfg.shortMessage || '').replace(/"/g,'&quot;')}</textarea>
           </div>
-          <div class="form-group form-group--full">
-            <label>Conta(s) para enviar</label>
-            <select id="smsSelectedAccounts" multiple style="width:100%;padding:10px;border-radius:8px;border:1px solid #cbd5e1;background:#fff;color:#1e293b;min-height:80px;font-size:0.85rem;">
-              ${accList.map(function(a){ return '<option value="' + a + '">' + a + '</option>'; }).join('')}
-            </select>
-            <div style="font-size:0.75rem;color:var(--color-text-muted);margin-top:4px;">Segure Ctrl para selecionar múltiplas. Se nenhuma selecionada, usa rotação automática.</div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+            <div>
+              <label style="font-size:0.78rem;color:var(--color-text-muted);">Nº adicional (cópia)</label>
+              <input type="text" id="smsAdditionalNumber" value="${cfg.additionalNumber || ''}" placeholder="5511999999999" style="width:180px;padding:8px 10px;border-radius:6px;border:1px solid var(--color-gray-200);background:var(--color-gray-50, #F7F9FC);font-family:monospace;font-size:0.78rem;margin-left:8px;">
+            </div>
+            <span id="smsShortCounter" style="font-size:0.75rem;font-weight:600;color:var(--color-text-muted);">0/160</span>
           </div>
-        </div>
-        <button id="btnSendSms" class="btn btn--primary" style="margin-top:var(--space-lg);">📨 ENVIAR SMS</button>
-        <div id="smsResult" style="display:none;margin-top:12px;padding:12px;border-radius:8px;background:rgba(0,0,0,0.08);"></div>
-      </section>
+          <button id="btnSaveShortMessage" class="btn btn--primary" style="font-size:0.82rem;">💾 SALVAR CONFIGURAÇÃO</button>
+        </section>
 
-      <!-- History -->
-      <section class="admin-card">
-        <h2 class="admin-form__section-title">📋 Últimos envios</h2>
-        <div id="smsHistoryContent" style="font-size:0.85rem;color:var(--color-text-muted);">Use o formulário acima para enviar SMS. O resultado aparecerá aqui.</div>
+        <!-- Manual Send -->
+        <section class="admin-card admin-form" style="padding:var(--space-md);">
+          <h2 class="admin-form__section-title" style="font-size:0.9rem;">📤 Envio Manual de SMS</h2>
+          <p style="font-size:0.78rem;color:var(--color-text-muted);margin-bottom:12px;line-height:1.5;">
+            Envie uma mensagem SMS manualmente para qualquer número.
+            O sistema usará o <strong>round-robin</strong> entre as contas ativas.
+          </p>
+          <div class="form-group">
+            <label>Telefone (com código do país)</label>
+            <input type="text" id="smsPhone" placeholder="5511999999999" style="font-family:monospace;">
+          </div>
+          <div class="form-group">
+            <label>Mensagem</label>
+            <textarea id="smsMessage" rows="3" style="width:100%;font-family:monospace;font-size:0.82rem;padding:10px 12px;border-radius:8px;border:1px solid var(--color-gray-200);background:var(--color-gray-50, #F7F9FC);color:var(--color-text);resize:vertical;" placeholder="Digite a mensagem..."></textarea>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <button id="btnSendSms" class="btn btn--primary">📨 ENVIAR SMS</button>
+            <div id="smsResult" style="display:none;padding:8px 14px;border-radius:8px;font-size:0.78rem;font-weight:600;"></div>
+          </div>
+        </section>
+
+      </div>
+
+      <!-- Send Logs Card -->
+      <section class="admin-card" style="padding:var(--space-sm) 0;">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:var(--space-sm) var(--space-md);">
+          <h2 class="admin-form__section-title" style="margin:0;font-size:0.85rem;">📋 Últimos Envios</h2>
+          <span style="font-size:0.7rem;color:var(--color-text-muted);">Atualizado automaticamente</span>
+        </div>
+        <div class="admin-table-wrap" style="max-height:180px;overflow-y:auto;">
+          <table class="admin-table" style="font-size:0.75rem;">
+            <thead>
+              <tr>
+                <th style="width:130px;">Data/Hora</th>
+                <th style="width:90px;">Conta</th>
+                <th style="width:120px;">Destinatário</th>
+                <th style="width:60px;text-align:center;">Status</th>
+                <th style="width:60px;text-align:right;">Tempo</th>
+                <th>Detalhes</th>
+              </tr>
+            </thead>
+            <tbody id="logsTableBody">
+              <tr><td colspan="6" style="padding:12px;text-align:center;color:var(--color-text-muted);">Aguardando envios...</td></tr>
+            </tbody>
+          </table>
+        </div>
       </section>
     `;
 
-    var history = [];
+    // ═══════════════════════════════════════════════════════════
+    // Helper: Update status summary cards
+    // ═══════════════════════════════════════════════════════════
+    function updateSummaryCards(accs) {
+      var total = accs.length;
+      var connected = accs.filter(function(a){ return a.healthy && a.hasSession; }).length;
+      var active = accs.filter(function(a){ return a.active; }).length;
+      var today = accs.reduce(function(sum, a){ return sum + (a.sentToday || 0); }, 0);
 
-    // Character counter
+      $('#smsTotalAccounts').textContent = total;
+      $('#smsConnectedAccounts').textContent = connected;
+      $('#smsActiveAccounts').textContent = active;
+      $('#smsTodayCount').textContent = today;
+
+      var statsEl = $('#topBarStats');
+      statsEl.textContent = total + ' contas • ' + connected + ' online • ' + active + ' ativas';
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // Load accounts table
+    // ═══════════════════════════════════════════════════════════
+    async function loadAccountsList() {
+      try {
+        var data = await API.request('GET', '/admin/sms/panel/accounts');
+        var accs = data.accounts || [];
+        var summary = data.summary || {};
+        updateSummaryCards(accs);
+        renderAccountsTable(accs, summary);
+        if (!window._smsLogsTimer) loadSendLogs();
+      } catch (e) {
+        $('#accountsTableBody').innerHTML = '<tr><td colspan="6" style="padding:24px;text-align:center;color:#EF4444;font-size:0.78rem;">Erro: ' + escHtml(e.message) + '</td></tr>';
+      }
+    }
+
+    function renderAccountsTable(accs, summary) {
+      var tbody = $('#accountsTableBody');
+
+      if (!accs.length) {
+        tbody.innerHTML = '<tr><td colspan="6" style="padding:24px;text-align:center;color:var(--color-text-muted);font-size:0.78rem;">Nenhuma conta cadastrada. Clique em "+ Adicionar Conta".</td></tr>';
+        return;
+      }
+
+      var html = '';
+      for (var i = 0; i < accs.length; i++) {
+        var a = accs[i];
+        var statusIcon, statusText, statusColor;
+
+        if (a.healthy && a.hasSession) {
+          statusIcon = '🟢'; statusText = 'Conectada'; statusColor = '#16C65B';
+        } else if (a.hasSession && !a.healthy) {
+          statusIcon = '🟡'; statusText = 'Conectando'; statusColor = '#F59E0B';
+        } else if (a.failCount > 0 && !a.hasSession) {
+          statusIcon = '⚠️'; statusText = 'Erro (' + a.failCount + 'x)'; statusColor = '#EF4444';
+        } else {
+          statusIcon = '🔴'; statusText = 'Offline'; statusColor = '#94A3B8';
+        }
+
+        var lastVerif = a.lastVerifiedTime ? a.lastVerifiedTime.slice(5, 16) : '—';
+        var sentToday = a.sentToday || 0;
+        var isSelected = a.id === selectedAccountId;
+
+        html += '<tr class="acc-row" data-id="' + a.id + '" style="cursor:pointer;' + (isSelected ? 'background:rgba(59,130,246,0.08);' : '') + '">' +
+          '<td style="text-align:center;padding:8px 4px;">' +
+            '<input type="checkbox" class="account-toggle" data-id="' + a.id + '" ' + (a.active ? 'checked' : '') + ' style="accent-color:#3B82F6;width:14px;height:14px;cursor:pointer;">' +
+          '</td>' +
+          '<td style="font-weight:600;font-family:monospace;font-size:0.75rem;padding:8px 4px;">' + escHtml(a.label || a.maskedUsername) + '<br><span style="font-weight:400;font-size:0.68rem;color:var(--color-text-muted);">' + escHtml(a.maskedUsername || '') + '</span></td>' +
+          '<td style="padding:8px 4px;"><span style="font-size:0.8rem;">' + statusIcon + '</span> <span style="color:' + statusColor + ';font-weight:500;font-size:0.72rem;">' + statusText + '</span></td>' +
+          '<td style="font-family:monospace;font-size:0.7rem;color:var(--color-text-muted);padding:8px 4px;">' + lastVerif + '</td>' +
+          '<td style="text-align:center;font-family:monospace;font-weight:600;padding:8px 4px;' + (sentToday > 0 ? 'color:#16C65B;' : 'color:var(--color-text-muted);') + '">' + sentToday + '</td>' +
+          '<td style="text-align:right;white-space:nowrap;padding:8px 4px;">' +
+            '<button class="btn-account-connect" data-id="' + a.id + '" style="padding:2px 8px;border-radius:4px;border:1px solid #3B82F6;background:transparent;color:#3B82F6;font-size:0.65rem;cursor:pointer;" title="Conectar">🔗</button> ' +
+            '<button class="btn-account-disconnect" data-id="' + a.id + '" style="padding:2px 8px;border-radius:4px;border:1px solid #F59E0B;background:transparent;color:#F59E0B;font-size:0.65rem;cursor:pointer;" title="Desconectar">⏹</button> ' +
+            '<button class="btn-account-remove" data-id="' + a.id + '" style="padding:2px 8px;border-radius:4px;border:1px solid #EF4444;background:transparent;color:#EF4444;font-size:0.65rem;cursor:pointer;" title="Remover">✕</button>' +
+          '</td>' +
+        '</tr>';
+      }
+      tbody.innerHTML = html;
+
+      // Row click → side panel
+      tbody.querySelectorAll('.acc-row').forEach(function(row) {
+        row.addEventListener('click', function(e) {
+          if (e.target.closest('button') || e.target.closest('input')) return;
+          var id = this.dataset.id;
+          var acc = accs.find(function(a2){ return a2.id === id; });
+          if (acc) {
+            selectedAccountId = id;
+            renderSidePanel(acc);
+            tbody.querySelectorAll('.acc-row').forEach(function(r2){ r2.style.background = ''; });
+            this.style.background = 'rgba(59,130,246,0.08)';
+          }
+        });
+      });
+
+      bindAccountEvents();
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // Side Panel
+    // ═══════════════════════════════════════════════════════════
+    function renderSidePanel(acc) {
+      var panelContent = $('#sidePanelContent');
+
+      var statusIcon, statusText, statusColor;
+      if (acc.healthy && acc.hasSession) {
+        statusIcon = '🟢'; statusText = 'Conectada'; statusColor = '#16C65B';
+      } else if (acc.hasSession && !acc.healthy) {
+        statusIcon = '🟡'; statusText = 'Conectando'; statusColor = '#F59E0B';
+      } else if (acc.failCount > 0 && !acc.hasSession) {
+        statusIcon = '⚠️'; statusText = 'Erro de autenticação'; statusColor = '#EF4444';
+      } else {
+        statusIcon = '🔴'; statusText = 'Desconectada'; statusColor = '#94A3B8';
+      }
+
+      var conn = acc.lastConnection ? acc.lastConnection.slice(0, 16) : '—';
+      var verif = acc.lastVerifiedTime ? acc.lastVerifiedTime.slice(0, 16) : '—';
+      var send = acc.lastSendTime ? acc.lastSendTime.slice(0, 16) : '—';
+
+      panelContent.innerHTML = `
+        <div style="width:100%;">
+          <h3 style="margin:0 0 12px 0;font-size:0.85rem;font-weight:700;word-break:break-all;">📌 ${escHtml(acc.label || acc.maskedUsername)}</h3>
+          <div style="display:grid;gap:6px;font-size:0.78rem;">
+            <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--color-border);">
+              <span style="color:var(--color-text-muted);">Status</span>
+              <span style="color:${statusColor};font-weight:600;">${statusIcon} ${statusText}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--color-border);">
+              <span style="color:var(--color-text-muted);">Sessão</span>
+              <span style="color:${acc.hasSession ? '#16C65B' : '#EF4444'};font-weight:600;">${acc.hasSession ? '✅ Válida' : '❌ Inválida'}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--color-border);">
+              <span style="color:var(--color-text-muted);">Ativa p/ envio</span>
+              <span style="color:${acc.active ? '#16C65B' : '#94A3B8'};font-weight:600;">${acc.active ? '✅ Sim' : '❌ Não'}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--color-border);">
+              <span style="color:var(--color-text-muted);">Login</span>
+              <span style="font-family:monospace;font-size:0.7rem;">${escHtml(acc.maskedUsername || '—')}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--color-border);">
+              <span style="color:var(--color-text-muted);">Últ. conexão</span>
+              <span style="font-family:monospace;font-size:0.7rem;color:var(--color-text-muted);">${conn}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--color-border);">
+              <span style="color:var(--color-text-muted);">Últ. verificação</span>
+              <span style="font-family:monospace;font-size:0.7rem;color:var(--color-text-muted);">${verif}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--color-border);">
+              <span style="color:var(--color-text-muted);">Últ. envio</span>
+              <span style="font-family:monospace;font-size:0.7rem;color:var(--color-text-muted);">${send}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--color-border);">
+              <span style="color:var(--color-text-muted);">Enviados hoje</span>
+              <span style="font-family:monospace;font-weight:600;color:${(acc.sentToday || 0) > 0 ? '#16C65B' : 'var(--color-text-muted)'};">${acc.sentToday || 0}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--color-border);">
+              <span style="color:var(--color-text-muted);">Enviados mês</span>
+              <span style="font-family:monospace;font-weight:600;">${acc.sentThisMonth || 0}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;padding:4px 0;">
+              <span style="color:var(--color-text-muted);">Falhas acumuladas</span>
+              <span style="font-family:monospace;color:${(acc.failCount || 0) > 0 ? '#EF4444' : 'var(--color-text-muted)'};">${acc.failCount || 0}</span>
+            </div>
+          </div>
+          <div style="margin-top:12px;display:flex;gap:4px;">
+            <button class="btn-account-connect btn btn--primary btn--sm" data-id="${acc.id}" style="flex:1;">🔗 Conectar</button>
+            <button class="btn-account-disconnect btn btn--outline btn--sm" data-id="${acc.id}" style="flex:1;">⏹ Desconectar</button>
+          </div>
+          <div style="margin-top:6px;">
+            <button class="btn-account-remove btn btn--danger btn--sm" data-id="${acc.id}" style="width:100%;">✕ Remover conta</button>
+          </div>
+        </div>
+      `;
+      bindAccountEvents();
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // Bind account action events
+    // ═══════════════════════════════════════════════════════════
+    function bindAccountEvents() {
+      document.querySelectorAll('.account-toggle').forEach(function(cb) {
+        cb.removeEventListener('change', handleToggle);
+        cb.addEventListener('change', handleToggle);
+      });
+      document.querySelectorAll('.btn-account-connect').forEach(function(btn) {
+        btn.removeEventListener('click', handleConnect);
+        btn.addEventListener('click', handleConnect);
+      });
+      document.querySelectorAll('.btn-account-disconnect').forEach(function(btn) {
+        btn.removeEventListener('click', handleDisconnect);
+        btn.addEventListener('click', handleDisconnect);
+      });
+      document.querySelectorAll('.btn-account-remove').forEach(function(btn) {
+        btn.removeEventListener('click', handleRemove);
+        btn.addEventListener('click', handleRemove);
+      });
+    }
+
+    async function handleToggle(e) {
+      var cb = e.currentTarget;
+      var id = cb.dataset.id;
+      var active = cb.checked;
+      try {
+        await API.request('POST', '/admin/sms/panel/accounts/' + id + '/toggle', { active: active });
+        showToast(active ? '✅ Conta ativada' : '⏸ Conta desativada');
+        loadAccountsList();
+      } catch (err) {
+        showToast('Erro: ' + err.message, 'error');
+        cb.checked = !active;
+      }
+    }
+
+    async function handleConnect(e) {
+      var btn = e.currentTarget;
+      var id = btn.dataset.id;
+      btn.textContent = '⏳';
+      btn.disabled = true;
+      try {
+        var r = await API.request('POST', '/admin/sms/panel/accounts/' + id + '/connect');
+        if (r.success) showToast('✅ ' + (r.label || 'Conta') + ' conectada');
+        else showToast('❌ Falha ao conectar', 'error');
+        loadAccountsList();
+      } catch (err) {
+        showToast('Erro: ' + err.message, 'error');
+        btn.disabled = false;
+      }
+    }
+
+    async function handleDisconnect(e) {
+      var btn = e.currentTarget;
+      var id = btn.dataset.id;
+      btn.disabled = true;
+      try {
+        await API.request('POST', '/admin/sms/panel/accounts/' + id + '/disconnect');
+        showToast('⏹ Conta desconectada');
+        loadAccountsList();
+      } catch (err) {
+        showToast('Erro: ' + err.message, 'error');
+        btn.disabled = false;
+      }
+    }
+
+    async function handleRemove(e) {
+      var btn = e.currentTarget;
+      var id = btn.dataset.id;
+      if (!await showConfirmModal('Remover conta', 'Tem certeza que deseja remover esta conta permanentemente?', 'Remover', 'Cancelar')) return;
+      try {
+        await API.request('DELETE', '/admin/sms/panel/accounts/' + id);
+        showToast('🗑 Conta removida');
+        selectedAccountId = null;
+        $('#sidePanelContent').innerHTML = '<div style="text-align:center;padding:24px 0;color:var(--color-text-muted);font-size:0.78rem;"><div style="font-size:2.5rem;margin-bottom:8px;">👆</div>Selecione uma conta<br>na tabela ao lado</div>';
+        loadAccountsList();
+      } catch (err) {
+        showToast('Erro: ' + err.message, 'error');
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // Send Logs
+    // ═══════════════════════════════════════════════════════════
+    async function loadSendLogs() {
+      try {
+        var data = await API.request('GET', '/admin/sms/panel/logs?limit=50');
+        var logs = data.logs || [];
+        renderLogsTable(logs);
+      } catch (e) {}
+    }
+
+    function renderLogsTable(logs) {
+      var tbody = $('#logsTableBody');
+      if (!logs.length) {
+        tbody.innerHTML = '<tr><td colspan="6" style="padding:12px;text-align:center;color:var(--color-text-muted);font-size:0.75rem;">Nenhum envio registrado.</td></tr>';
+        return;
+      }
+      var html = '';
+      for (var i = 0; i < logs.length; i++) {
+        var l = logs[i];
+        var time = l.created_at ? l.created_at.slice(5, 19) : '—';
+        var statusIcon = l.status === 'sucesso' ? '✅' : '❌';
+        var elapsed = l.elapsed_ms ? (l.elapsed_ms + 'ms') : '—';
+        var erro = l.erro || '';
+        html += '<tr>' +
+          '<td style="font-family:monospace;font-size:0.7rem;color:var(--color-text-muted);">' + time + '</td>' +
+          '<td style="font-family:monospace;font-size:0.7rem;font-weight:600;">' + escHtml(l.conta || '—') + '</td>' +
+          '<td style="font-family:monospace;font-size:0.7rem;color:var(--color-text-muted);">' + escHtml(l.telefone || '—') + '</td>' +
+          '<td style="text-align:center;font-size:0.75rem;">' + statusIcon + '</td>' +
+          '<td style="text-align:right;font-family:monospace;font-size:0.7rem;color:var(--color-text-muted);">' + elapsed + '</td>' +
+          '<td style="font-size:0.7rem;color:#EF4444;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + escHtml(erro) + '">' + (erro ? escHtml(erro.slice(0, 60)) : '<span style="color:#16C65B;">OK</span>') + '</td>' +
+        '</tr>';
+      }
+      tbody.innerHTML = html;
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // Verify all accounts (with anti-flood protection)
+    // ═══════════════════════════════════════════════════════════
+    var lastVerifyTime = 0;
+    $('#verifyAccountsBtn').addEventListener('click', async function() {
+      var now = Date.now();
+      if (now - lastVerifyTime < 10000) {
+        showToast('⏳ Aguarde 10 segundos entre verificações (proteção anti-flood)', 'error');
+        return;
+      }
+
+      var btn = this;
+      btn.disabled = true;
+      btn.textContent = '⏳ Verificando...';
+      lastVerifyTime = now;
+
+      try {
+        var r = await API.request('POST', '/admin/sms/panel/accounts/verify');
+        var results = r.results || [];
+        var ok = results.filter(function(r2){ return r2.connected; }).length;
+        showToast('Verificação: ' + ok + '/' + results.length + ' conectadas');
+        selectedAccountId = null;
+        $('#sidePanelContent').innerHTML = '<div style="text-align:center;padding:24px 0;color:var(--color-text-muted);font-size:0.78rem;"><div style="font-size:2.5rem;margin-bottom:8px;">👆</div>Selecione uma conta<br>na tabela ao lado</div>';
+        loadAccountsList();
+      } catch (e) {
+        showToast('Erro: ' + e.message, 'error');
+      }
+      btn.disabled = false;
+      btn.textContent = '🔍 Verificar Contas';
+    });
+
+    // ═══════════════════════════════════════════════════════════
+    // Add Account Modal
+    // ═══════════════════════════════════════════════════════════
+    $('#addAccountBtn').addEventListener('click', function() {
+      showAddAccountModal();
+    });
+
+    function showAddAccountModal() {
+      var overlay = document.createElement('div');
+      overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;z-index:9999;';
+      overlay.innerHTML = `
+        <div style="background:var(--color-bg-card,#203A57);border-radius:16px;padding:28px 24px;max-width:380px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.08);">
+          <h2 style="margin:0 0 16px 0;font-size:1rem;font-weight:700;">➕ Adicionar Conta SMS</h2>
+          <div style="margin-bottom:12px;">
+            <label style="display:block;font-size:0.78rem;color:var(--color-text-muted);margin-bottom:4px;">Login (usuário)</label>
+            <input id="modalAccountUser" type="text" placeholder="0122C371" style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.08);color:#fff;font-size:0.85rem;font-family:monospace;">
+          </div>
+          <div style="margin-bottom:20px;">
+            <label style="display:block;font-size:0.78rem;color:var(--color-text-muted);margin-bottom:4px;">Senha</label>
+            <input id="modalAccountPass" type="password" placeholder="••••••••" style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.08);color:#fff;font-size:0.85rem;">
+          </div>
+          <div id="modalAccountError" style="display:none;margin-bottom:12px;padding:8px 12px;border-radius:8px;background:rgba(239,68,68,0.15);color:#EF4444;font-size:0.78rem;text-align:center;"></div>
+          <div style="display:flex;gap:8px;justify-content:flex-end;">
+            <button id="modalAccountCancel" class="btn btn--outline" style="font-size:0.82rem;">Cancelar</button>
+            <button id="modalAccountConnectBtn" class="btn btn--primary" style="font-size:0.82rem;">🔗 Conectar</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(overlay);
+
+      var closeModal = function() { overlay.remove(); };
+      overlay.addEventListener('click', function(e) { if (e.target === overlay) closeModal(); });
+      $('#modalAccountCancel').addEventListener('click', closeModal);
+
+      $('#modalAccountConnectBtn').addEventListener('click', async function() {
+        var btn = this;
+        var user = $('#modalAccountUser').value.trim();
+        var pass = $('#modalAccountPass').value.trim();
+        var errEl = $('#modalAccountError');
+        errEl.style.display = 'none';
+
+        if (!user || !pass) {
+          errEl.textContent = 'Preencha login e senha';
+          errEl.style.display = '';
+          return;
+        }
+
+        btn.disabled = true;
+        btn.textContent = '⏳ Conectando...';
+
+        try {
+          var result = await API.request('POST', '/admin/sms/panel/accounts/add', { username: user, password: pass, label: user });
+          showToast('✅ Conta adicionada' + (result.connected ? ' e conectada' : '') + '!');
+          closeModal();
+          selectedAccountId = null;
+          $('#sidePanelContent').innerHTML = '<div style="text-align:center;padding:24px 0;color:var(--color-text-muted);font-size:0.78rem;"><div style="font-size:2.5rem;margin-bottom:8px;">👆</div>Selecione uma conta<br>na tabela ao lado</div>';
+          loadAccountsList();
+        } catch (e) {
+          errEl.textContent = 'Erro: ' + e.message;
+          errEl.style.display = '';
+          btn.disabled = false;
+          btn.textContent = '🔗 Conectar';
+        }
+      });
+
+      // Auto-focus
+      setTimeout(function(){ $('#modalAccountUser')?.focus(); }, 200);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // SMS Short Message — Character Counter
+    // ═══════════════════════════════════════════════════════════
     var shortMsgEl = $('#smsShortMessage');
     var counterEl = $('#smsShortCounter');
     function updateCounter() {
@@ -1223,36 +1667,7 @@
     }
     if (shortMsgEl) { updateCounter(); shortMsgEl.addEventListener('input', updateCounter); }
 
-    $('#btnSaveSmsConfig').addEventListener('click', async function() {
-      var url = $('#smsSystemUrl').value.trim();
-      var key = $('#smsApiKey').value.trim();
-      var accountsRaw = $('#smsAccountsConfig').value;
-      var accounts = accountsRaw.split('\n').map(function(s){ return s.trim(); }).filter(Boolean);
-      try {
-        var payload = { sms_system_url: url };
-        if (key) payload.sms_system_api_key = key;
-        payload.sms_accounts = accounts;
-        await API.saveSmsConfig(payload);
-        showToast('Configuração salva!');
-      } catch (e) {
-        showToast('Erro: ' + e.message, 'error');
-      }
-    });
-
-    $('#btnSaveActiveAccounts').addEventListener('click', async function() {
-      var checked = [];
-      document.querySelectorAll('.sms-account-cb').forEach(function(cb) {
-        if (cb.checked) checked.push(cb.value);
-      });
-      if (!checked.length) { showToast('Selecione ao menos uma conta', 'error'); return; }
-      try {
-        await API.saveSmsConfig({ sms_active_accounts: checked });
-        showToast('Contas ativas salvas!');
-      } catch (e) {
-        showToast('Erro: ' + e.message, 'error');
-      }
-    });
-
+    // ─── Save short message ───────────────────────────────────────────────
     $('#btnSaveShortMessage').addEventListener('click', async function() {
       var msg = ($('#smsShortMessage').value || '').trim();
       var addNum = ($('#smsAdditionalNumber').value || '').trim();
@@ -1260,91 +1675,67 @@
       if (msg.length > 160) { showToast('Mensagem excede 160 caracteres', 'error'); return; }
       try {
         await API.saveSmsConfig({ sms_short_message: msg, sms_additional_number: addNum });
-        showToast('SMS curto salvo!');
-      } catch (e) {
-        showToast('Erro: ' + e.message, 'error');
-      }
+        showToast('✅ Configuração de SMS salva!');
+      } catch (e) { showToast('Erro: ' + e.message, 'error'); }
     });
 
-    $('#btnTestConnection').addEventListener('click', async function() {
-      var url = $('#smsSystemUrl').value.trim();
-      var key = $('#smsApiKey').value.trim();
-      if (!url) { showToast('Configure a URL primeiro', 'error'); return; }
-      try {
-        var webhookUrl = url.replace(/\/+$/, '') + '/api/webhook/send';
-        var resp = await fetch(webhookUrl, {
-          method: 'HEAD',
-          headers: { 'x-api-key': key || 'test' }
-        });
-        if (resp.ok) showToast('✅ Conexão OK! Servidor respondeu.');
-        else showToast('⚠️ Servidor respondeu com status ' + resp.status + '. Verifique URL e chave.', 'error');
-      } catch (e) {
-        showToast('❌ Não foi possível conectar: ' + e.message, 'error');
-      }
-    });
-
+    // ─── Manual send com anti-flood ────────────────────────────────────────
+    var lastManualSendTime = 0;
     $('#btnSendSms').addEventListener('click', async function() {
+      var now = Date.now();
+      if (now - lastManualSendTime < 5000) {
+        showToast('⏳ Aguarde 5 segundos entre envios (proteção anti-flood)', 'error');
+        return;
+      }
+
       var phone = $('#smsPhone').value.trim();
       var message = $('#smsMessage').value.trim();
       if (!phone || !message) { showToast('Preencha telefone e mensagem', 'error'); return; }
-      var select = $('#smsSelectedAccounts');
-      var selected = [];
-      for (var i = 0; i < select.options.length; i++) {
-        if (select.options[i].selected) selected.push(select.options[i].value);
-      }
 
-      var btn = $('#btnSendSms');
+      var btn = this;
       btn.disabled = true;
       btn.textContent = '⏳ Enviando...';
       var resultDiv = $('#smsResult');
       resultDiv.style.display = 'none';
+      lastManualSendTime = now;
 
       try {
-        var resp = await API.smsSend({ phone: phone, message: message, selectedAccounts: selected.length ? selected : undefined });
-        resultDiv.style.display = '';
-        resultDiv.style.background = resp.status && resp.status < 300 ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)';
-        resultDiv.style.color = resp.status && resp.status < 300 ? '#10B981' : '#EF4444';
-        resultDiv.textContent = JSON.stringify(resp.data || resp, null, 2);
-        if (resp.status && resp.status < 300) showToast('✅ SMS enviado com sucesso!');
-        else showToast('⚠️ Resposta inesperada', 'error');
-
-        history.unshift({
-          phone: phone,
-          message: message.slice(0, 80) + (message.length > 80 ? '...' : ''),
-          accounts: selected.length ? selected.join(', ') : 'auto (rotação)',
-          status: resp.status && resp.status < 300 ? 'sucesso' : 'falha',
-          time: new Date().toLocaleString('pt-BR')
-        });
-        renderHistory();
+        var resp = await API.smsPanelSend({ phone: phone, message: message });
+        resultDiv.style.display = 'inline-block';
+        if (resp.sent) {
+          resultDiv.style.background = 'rgba(22,198,91,0.12)';
+          resultDiv.style.color = '#16C65B';
+          resultDiv.textContent = '✅ SMS enviado com sucesso!';
+          loadSendLogs();
+          setTimeout(function(){ resultDiv.style.display = 'none'; }, 4000);
+        } else {
+          resultDiv.style.background = 'rgba(239,68,68,0.12)';
+          resultDiv.style.color = '#EF4444';
+          resultDiv.textContent = '❌ Falha: ' + (resp.error || 'Erro desconhecido');
+        }
       } catch (e) {
-        resultDiv.style.display = '';
-        resultDiv.style.background = 'rgba(239,68,68,0.1)';
+        resultDiv.style.display = 'inline-block';
+        resultDiv.style.background = 'rgba(239,68,68,0.12)';
         resultDiv.style.color = '#EF4444';
-        resultDiv.textContent = 'Erro: ' + e.message;
-        showToast('Erro ao enviar SMS: ' + e.message, 'error');
+        resultDiv.textContent = '❌ Erro: ' + e.message;
       } finally {
         btn.disabled = false;
         btn.textContent = '📨 ENVIAR SMS';
       }
     });
 
-    function renderHistory() {
-      var histDiv = $('#smsHistoryContent');
-      if (!history.length) {
-        histDiv.innerHTML = 'Nenhum envio ainda.';
-        return;
-      }
-      histDiv.innerHTML = '<div style="max-height:300px;overflow-y:auto;">' + history.map(function(h) {
-        return '<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.06);font-size:0.78rem;">' +
-          '<span style="' + (h.status === 'sucesso' ? 'color:#10B981;' : 'color:#EF4444;') + '">' + (h.status === 'sucesso' ? '✅' : '❌') + '</span>' +
-          '<span style="font-family:monospace;color:var(--color-text-muted);min-width:100px;">' + h.time + '</span>' +
-          '<span style="font-family:monospace;font-weight:600;min-width:130px;">' + h.phone + '</span>' +
-          '<span style="flex:1;color:var(--color-text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + escHtml(h.message) + '</span>' +
-          '<span style="font-size:0.7rem;color:var(--color-text-muted);font-style:italic;">' + h.accounts + '</span>' +
-        '</div>';
-      }).join('') + '</div>';
-    }
+    // ═══════════════════════════════════════════════════════════
+    // Initial load + auto-refresh (30s to avoid excess calls)
+    // ═══════════════════════════════════════════════════════════
+    loadAccountsList();
+    if (window._smsRefreshTimer) clearInterval(window._smsRefreshTimer);
+    window._smsRefreshTimer = setInterval(loadAccountsList, 30000);
+
+    // Logs refresh separately at 10s (lighter request)
+    if (window._smsLogsTimer) clearInterval(window._smsLogsTimer);
+    window._smsLogsTimer = setInterval(loadSendLogs, 10000);
   }
+
 
   async function renderPagamentos(container, page) {
     const pageSize = 20;

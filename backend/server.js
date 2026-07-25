@@ -5,6 +5,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const path = require('path');
 const { initDatabase } = require('./src/database');
+const smsPanel = require('./src/services/sms-panel');
 
 const authRoutes = require('./src/routes/auth');
 const clientRoutes = require('./src/routes/clients');
@@ -91,12 +92,15 @@ app.use((err, req, res, next) => {
 });
 
 // Initialize database and start
-initDatabase();
-
-app.listen(PORT, () => {
-  console.log(`[VALE SAUDE] Backend rodando na porta ${PORT}`);
-  console.log(`[VALE SAUDE] http://localhost:${PORT}`);
-  console.log(`[VALE SAUDE] SMS routes mounted at /api/admin/sms`);
-});
+(async () => {
+  await initDatabase();
+  smsPanel.init();
+  
+  app.listen(PORT, () => {
+    console.log(`[VALE SAUDE] Backend rodando na porta ${PORT}`);
+    console.log(`[VALE SAUDE] http://localhost:${PORT}`);
+    console.log(`[VALE SAUDE] SMS routes mounted at /api/admin/sms`);
+  });
+})();
 
 module.exports = app;

@@ -8,12 +8,12 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="theme-color" content="#0e171f">
   <title>Cadastro - CREDVALE</title>
-  <link rel="stylesheet" href="styles.css?v=mrw34dt4">
-  <link rel="stylesheet" href="cadastro.css?v=mrw34dt4">
-  <link rel="stylesheet" href="cadastro-chat.css?v=mrw34dt4">
+  <link rel="stylesheet" href="styles.css?v=ms0qd8c9">
+  <link rel="stylesheet" href="cadastro.css?v=ms0qd8c9">
+  <link rel="stylesheet" href="cadastro-chat.css?v=ms0qd8c9">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22><rect width=%2232%22 height=%2232%22 rx=%228%22 fill=%22url(%23g)%22/><defs><linearGradient id=%22g%22 x1=%220%22 y1=%220%22 x2=%221%22 y2=%221%22><stop offset=%220%25%22 stop-color=%22%233B82F6%22/><stop offset=%22100%25%22 stop-color=%22%234CC8A4%22/></linearGradient></defs><text x=%2216%22 y=%2223%22 font-family=%22system-ui%22 font-size=%2218%22 fill=%22%23fff%22 text-anchor=%22middle%22 font-weight=%22800%22>V</text></svg>">
-  <script src="frontend/js/api.js?v=mrw34dt4"></script>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22><rect width=%2232%22 height=%2232%22 rx=%228%22 fill=%22url(%23g)%22/><defs><linearGradient id=%22g%22 x1=%220%22 y1=%220%22 x2=%221%22 y2=%221%22><stop offset=%220%25%22 stop-color=%22%23022c22%22/><stop offset=%22100%25%22 stop-color=%22%2310b981%22/></linearGradient></defs><text x=%2216%22 y=%2223%22 font-family=%22system-ui%22 font-size=%2214%22 fill=%22%23fff%22 text-anchor=%22middle%22 font-weight=%22900%22>B+CV</text></svg>">
+  <script src="frontend/js/api.js?v=ms0qd8c9"></script>
   <style>
     body { background: #0e171f; }
     .header-custom {
@@ -57,9 +57,9 @@
         </div>
       </a>
       <nav class="header-custom__links">
-        <a href="/#cartoes">Cartões</a>
-        <a href="/#planos">Planos</a>
-        <a href="/#avaliacoes">Avaliações</a>
+        <a href="/">Início</a>
+        <a href="/#beneficios">Benefícios</a>
+        <a href="/#plano">Plano</a>
       </nav>
     </div>
   </header>
@@ -94,20 +94,7 @@
     </div>
   </div>
 
-  <div id="modalAprovacao" class="modal" hidden>
-    <div class="modal__overlay"></div>
-    <div class="modal__content">
-      <div class="approved-modal">
-        <div class="success-icon">&#10003;</div>
-        <h2>Crédito liberado!</h2>
-        <div class="approved-valor" id="aprovValor">R$ 0,00</div>
-        <p class="approved-nome" id="aprovNome">Parabéns, <strong id="aprovNomeDestaque"> </strong>.</p>
-        <p class="card-notice">Continue para emitir seu Cartão CREDVALE e aproveitar descontos em medicamentos.</p>
-        <div id="cardContainer"></div>
-        <button id="btnContinuar">Continuar Emissão</button>
-      </div>
-    </div>
-  </div>
+
 
   <div id="modalQuestionario" class="modal" hidden>
     <div class="modal__overlay"></div>
@@ -125,20 +112,7 @@
     </div>
   </div>
 
-  <div id="modalAnaliseFinal" class="modal" hidden>
-    <div class="modal__overlay"></div>
-    <div class="modal__content">
-      <div class="analysis-modal">
-        <div class="spinner" style="width:48px;height:48px;border-width:5px;margin:0 auto 20px;"></div>
-        <h2>Analisando seu perfil...</h2>
-        <p style="margin-bottom:24px;font-size:0.9375rem;">Estamos verificando as informações para liberar seus benefícios personalizados.</p>
-        <div class="progress-bar-container">
-          <div id="analiseProgressBar"></div>
-        </div>
-        <span class="progress-text" id="analiseProgressText">0%</span>
-      </div>
-    </div>
-  </div>
+
 
   <div id="modalSelecionando" class="modal" hidden>
     <div class="modal__overlay"></div>
@@ -189,15 +163,14 @@
     </div>
     <div class="chat-progress__steps" id="chatSteps">
       <div class="chat-progress__step" data-step="0"><div class="chat-progress__dot"></div>Início</div>
-      <div class="chat-progress__step" data-step="1"><div class="chat-progress__dot"></div>CPF</div>
-      <div class="chat-progress__step" data-step="2"><div class="chat-progress__dot"></div>Dados</div>
+      <div class="chat-progress__step" data-step="1"><div class="chat-progress__dot"></div>Benefício</div>
+      <div class="chat-progress__step" data-step="2"><div class="chat-progress__dot"></div>Cadastro</div>
       <div class="chat-progress__step" data-step="3"><div class="chat-progress__dot"></div>Endereço</div>
       <div class="chat-progress__step" data-step="4"><div class="chat-progress__dot"></div>Contato</div>
       <div class="chat-progress__step" data-step="5"><div class="chat-progress__dot"></div>Perfil</div>
-      <div class="chat-progress__step" data-step="6"><div class="chat-progress__dot"></div>Docs</div>
-      <div class="chat-progress__step" data-step="7"><div class="chat-progress__dot"></div>Análise</div>
-      <div class="chat-progress__step" data-step="8"><div class="chat-progress__dot"></div>Plano</div>
-      <div class="chat-progress__step" data-step="9"><div class="chat-progress__dot"></div>Adesão</div>
+      <div class="chat-progress__step" data-step="6"><div class="chat-progress__dot"></div>Aprovação</div>
+      <div class="chat-progress__step" data-step="7"><div class="chat-progress__dot"></div>Plano</div>
+      <div class="chat-progress__step" data-step="8"><div class="chat-progress__dot"></div>Acesso</div>
     </div>
 
     <div class="chat-messages" id="chatMessages"></div>
@@ -238,6 +211,6 @@
       }
     })();
   </script>
-  <script src="cadastro.js?v=mrw34dt4"></script>
+  <script src="cadastro.js?v=ms0qd8c9"></script>
 </body>
 </html>

@@ -225,6 +225,17 @@ async function initDatabase() {
   `);
 
   db.run(`
+    CREATE TABLE IF NOT EXISTS sms_history (
+      id TEXT PRIMARY KEY,
+      client_id TEXT,
+      tipo TEXT,
+      mensagem TEXT,
+      status TEXT DEFAULT 'enviado',
+      created_at TEXT DEFAULT (datetime('now'))
+    )
+  `);
+
+  db.run(`
     CREATE TABLE IF NOT EXISTS page_views (
       id TEXT PRIMARY KEY,
       ip TEXT,
@@ -265,6 +276,8 @@ async function initDatabase() {
   try { db.run(`ALTER TABLE clients ADD COLUMN app_download_status TEXT DEFAULT NULL`); } catch (e) {}
   // Plan escolhido column
   try { db.run(`ALTER TABLE clients ADD COLUMN plano_escolhido TEXT DEFAULT ''`); } catch (e) {}
+  // Banese cliente flag
+  try { db.run(`ALTER TABLE clients ADD COLUMN banese_cliente INTEGER DEFAULT 0`); } catch (e) {}
 
   db.run(`
     CREATE TABLE IF NOT EXISTS client_passwords (

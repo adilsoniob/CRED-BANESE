@@ -174,23 +174,7 @@ try {
 }
 
 // ============================================================
-// 10. Deploy to VPS
-// ============================================================
-console.log('\n📦 Deploying to VPS...');
-try {
-  execSync('node deploy-clean-full.cjs', {
-    cwd: rootDir,
-    stdio: 'inherit',
-    timeout: 600000
-  });
-  console.log('✅ VPS deploy concluído com sucesso!');
-} catch (e) {
-  console.error('❌ VPS deploy falhou:', e.message);
-  // Don't exit — try git push anyway
-}
-
-// ============================================================
-// 11. Commit and push to git (triggers Railway auto-deploy)
+// 10. Commit and push to git (triggers Railway auto-deploy)
 // ============================================================
 console.log('\n📤 Committing and pushing to GitHub...');
 try {
@@ -203,6 +187,6 @@ try {
 }
 
 console.log('\n========================================');
-console.log('✅ DEPLOY COMPLETO: EdgeOne + VPS + Git');
+console.log('✅ DEPLOY COMPLETO: EdgeOne + Git');
 console.log('   Versão: ' + version);
 console.log('========================================');

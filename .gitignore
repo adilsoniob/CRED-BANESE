@@ -38,6 +38,9 @@ scripts/deploy.config.json
 CREDENCIAIS.txt
 AUDITORIA_COMPLETA.md
 
+# Deploy VPS (removido)
+deploy-clean-full.cjs
+
 # Editor
 *.sublime-project
 *.sublime-workspace
