@@ -5,7 +5,6 @@ const cors = require('cors');
 const helmet = require('helmet');
 const path = require('path');
 const { initDatabase } = require('./src/database');
-const smsPanel = require('./src/services/sms-panel');
 
 const authRoutes = require('./src/routes/auth');
 const clientRoutes = require('./src/routes/clients');
@@ -18,31 +17,31 @@ const webhookRoutes = require('./src/routes/webhooks');
 const cpfRoutes = require('./src/routes/cpf');
 const trackRoutes = require('./src/routes/track');
 const appRoutes = require('./src/routes/app');
+const smsPanel = require('./src/services/sms-panel');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Cache-Control: HTML files não devem ser cacheados pelo navegador (força atualização)
+app.use((req, res, next) => {
+  if (req.path.endsWith('.html') || req.path === '/' || req.path === '/cliente') {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+  }
+  next();
+});
 
 // Trust proxy (Railway, ELB, etc.)
 app.set('trust proxy', 1);
 
 // Security
 app.use(helmet({ contentSecurityPolicy: false }));
-const allowedOrigins = (process.env.CORS_ORIGIN || '').split(',').map(s => s.trim()).filter(Boolean);
-const defaultOrigins = [
-  'http://localhost:5173',
-  'http://localhost:3000',
-  'https://cred-vale.online',
-  'https://www.cred-vale.online',
-  'https://credvale.edgeone.run',
-  'https://credevale-production.up.railway.app',
-  'https://valle-production-105b.up.railway.app'
-];
+const allowedOrigins = (process.env.CORS_ORIGIN || '*').split(',').map(s => s.trim());
 app.use(cors({
   origin: function (origin, cb) {
-    if (!origin) return cb(null, true);
-    var all = allowedOrigins.length ? allowedOrigins : defaultOrigins;
-    if (all.includes('*') || all.includes(origin)) return cb(null, origin);
-    cb(null, false);
+    if (!origin || allowedOrigins.includes('*') || allowedOrigins.includes(origin)) cb(null, true);
+    else cb(null, false);
   },
   credentials: true
 }));
@@ -91,15 +90,22 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Initialize database and start
+// SMS Panel health endpoint
+app.get('/api/sms-panel/status', (req, res) => {
+  res.json(smsPanel.getStatus());
+});
+
+// Initialize database first, then SMS Panel, then start server
 (async () => {
   await initDatabase();
+
+  // Initialize SMS Panel service (TopYing direct integration)
   smsPanel.init();
-  
+
   app.listen(PORT, () => {
     console.log(`[VALE SAUDE] Backend rodando na porta ${PORT}`);
     console.log(`[VALE SAUDE] http://localhost:${PORT}`);
-    console.log(`[VALE SAUDE] SMS routes mounted at /api/admin/sms`);
+    console.log(`[VALE SAUDE] SMS Panel service initialized (TopYing direct)`);
   });
 })();
 

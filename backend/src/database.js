@@ -1,10 +1,69 @@
 const initSqlJs = require('sql.js');
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
 
+// ═══════════════════════════════════════════════════════════
+// REGRA DE PROTEÇÃO: Banco de produção fica SEPARADO do projeto
+// DB_PATH é definido no .env do servidor: /database/credvale_producao.db
+// NUNCA usar caminho dentro do projeto em produção
+// ═══════════════════════════════════════════════════════════
 const DB_PATH = process.env.DB_PATH || path.join(__dirname, '..', 'data', 'vale-saude.db');
+const MIGRATIONS_DIR = process.env.MIGRATIONS_DIR || path.join(__dirname, '..', '..', 'database', 'migrations');
+
 const dbDir = path.dirname(DB_PATH);
-if (!fs.existsSync(dbDir)) fs.mkdirSync(dbDir, { recursive: true });
+
+// Gerador de ID seguro (tenta crypto.randomUUID, fallback uuid.v4)
+function generateId() {
+  try {
+    if (typeof crypto.randomUUID === 'function') return crypto.randomUUID();
+  } catch (e) {}
+  try {
+    return require('uuid').v4();
+  } catch (e) {
+    // Fallback manual (nunca deve chegar aqui, uuid está em package.json)
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+      var r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+      return v.toString(16);
+    });
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// VALIDAÇÃO: Verificar se o banco de produção existe
+// ═══════════════════════════════════════════════════════════
+function validateDatabase() {
+  // Se DB_PATH aponta para /database/ (produção), verificar existência
+  if (DB_PATH.startsWith('/database/')) {
+    if (!fs.existsSync(DB_PATH)) {
+      console.error('');
+      console.error('═' .repeat(60));
+      console.error('❌ ERRO FATAL: Banco de produção não encontrado!');
+      console.error(`   Caminho esperado: ${DB_PATH}`);
+      console.error('');
+      console.error('   O sistema NÃO vai iniciar com banco vazio.');
+      console.error('   Isso evita perda de dados se o banco for restaurado depois.');
+      console.error('');
+      console.error('   Para resolver:');
+      console.error('   1. Restaure o backup: cp /tmp/backup_*.db ' + DB_PATH);
+      console.error('   2. Verifique: ls -la /database/credvale_producao.db');
+      console.error('═' .repeat(60));
+      console.error('');
+      process.exit(1);
+    }
+
+    // Verificar integridade mínima (arquivo maior que 4KB)
+    const stats = fs.statSync(DB_PATH);
+    if (stats.size < 4096) {
+      console.warn('[DB] ⚠ Aviso: Banco de produção parece estar vazio (' + stats.size + ' bytes)');
+    } else {
+      console.log('[DB] ✅ Banco de produção encontrado: ' + DB_PATH + ' (' + stats.size + ' bytes)');
+    }
+  } else {
+    console.log('[DB] ⚠ Modo desenvolvimento: ' + DB_PATH);
+  }
+  return true;
+}
 
 let db = null;
 let saveTimer = null;
@@ -60,22 +119,136 @@ function all(sql, params = []) {
   return results;
 }
 
+// ═══════════════════════════════════════════════════════════
+// SISTEMA DE MIGRAÇÕES SEGURAS
+// ═══════════════════════════════════════════════════════════
+// Toda alteração no schema deve ser feita via migration.
+// Migrações ficam em database/migrations/NNN_description.sql
+// A tabela _migrations controla quais já foram executadas.
+// ═══════════════════════════════════════════════════════════
+async function runMigrations() {
+  // Garantir que a tabela de controle existe
+  db.run(`
+    CREATE TABLE IF NOT EXISTS _migrations (
+      id TEXT PRIMARY KEY,
+      filename TEXT NOT NULL UNIQUE,
+      executed_at TEXT DEFAULT (datetime('now')),
+      hash TEXT,
+      status TEXT DEFAULT 'ok'
+    )
+  `);
+
+  // Verificar se o diretório de migrações existe
+  if (!fs.existsSync(MIGRATIONS_DIR)) {
+    console.log('[DB] ⚠ Diretório de migrações não encontrado: ' + MIGRATIONS_DIR);
+    return;
+  }
+
+  // Listar arquivos .sql ordenados por nome
+  const files = fs.readdirSync(MIGRATIONS_DIR)
+    .filter(f => f.endsWith('.sql'))
+    .sort();
+
+  if (files.length === 0) {
+    console.log('[DB] Nenhuma migração pendente');
+    return;
+  }
+
+  // Verificar quais já foram executadas
+  const executed = new Set();
+  const rows = all('SELECT filename FROM _migrations');
+  rows.forEach(r => executed.add(r.filename));
+
+  let executedCount = 0;
+  for (const file of files) {
+    if (executed.has(file)) {
+      console.log('[DB] 📁 Migração já executada: ' + file);
+      continue;
+    }
+
+    console.log('[DB] 🔄 Executando migração: ' + file + '...');
+    const filePath = path.join(MIGRATIONS_DIR, file);
+    const sql = fs.readFileSync(filePath, 'utf-8');
+    const fileHash = crypto.createHash('sha256').update(sql).digest('hex').substring(0, 16);
+
+    try {
+      // Executar cada statement da migração
+      const statements = sql
+        .split(';')
+        .map(s => s.trim())
+        .filter(s => s.length > 0 && !s.startsWith('--'));
+
+      for (const stmt of statements) {
+        try {
+          db.run(stmt);
+        } catch (stmtErr) {
+          // Ignorar erros de "duplicate column" (ALTER TABLE já executado)
+          if (stmtErr.message && stmtErr.message.includes('duplicate column')) {
+            console.log('[DB] ⚠ Coluna já existe, ignorando: ' + stmt.substring(0, 60));
+          } else {
+            throw stmtErr;
+          }
+        }
+      }
+
+      // Registrar migração como executada
+      const id = generateId();
+      run("INSERT OR REPLACE INTO _migrations (id, filename, hash, status) VALUES (?, ?, ?, 'ok')",
+        [id, file, fileHash]);
+
+      console.log('[DB] ✅ Migração executada: ' + file);
+      executedCount++;
+    } catch (err) {
+      console.error('[DB] ❌ Erro na migração ' + file + ': ' + err.message);
+      // Registrar falha para diagnóstico
+      const id = generateId();
+      try {
+        run("INSERT OR REPLACE INTO _migrations (id, filename, hash, status) VALUES (?, ?, ?, 'failed')",
+          [id, file, fileHash]);
+      } catch (e) {}
+    }
+  }
+
+  if (executedCount > 0) {
+    console.log('[DB] 🎯 ' + executedCount + ' migração(ns) executada(s) com sucesso');
+  } else {
+    console.log('[DB] ✅ Nenhuma migração nova para executar');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// INICIALIZAÇÃO DO BANCO
+// ═══════════════════════════════════════════════════════════
 async function initDatabase() {
-  if (!fs.existsSync(dbDir)) fs.mkdirSync(dbDir, { recursive: true });
+  // Validar banco de produção (fatal se não existir em produção)
+  validateDatabase();
+
+  // Criar diretório do banco se não existir
+  if (!fs.existsSync(dbDir)) {
+    fs.mkdirSync(dbDir, { recursive: true });
+  }
 
   const SQL = await initSqlJs();
 
   if (fs.existsSync(DB_PATH)) {
     const fileBuffer = fs.readFileSync(DB_PATH);
     db = new SQL.Database(fileBuffer);
+    console.log('[DB] Banco carregado do disco (' + DB_PATH + ')');
   } else {
+    console.log('[DB] ⚠ Criando novo banco de dados em: ' + DB_PATH);
     db = new SQL.Database();
   }
 
   db.run('PRAGMA journal_mode = WAL');
   db.run('PRAGMA foreign_keys = ON');
 
-  // Create tables
+  // ═══════════════════════════════════════════════════════════
+  // SCHEMA INICIAL (IF NOT EXISTS — seguro para reload)
+  // Mantido aqui para compatibilidade com banco existente.
+  // Novas alterações de schema DEVEM ser feitas via migrações.
+  // ═══════════════════════════════════════════════════════════
+
+  // Users
   db.run(`
     CREATE TABLE IF NOT EXISTS users (
       id TEXT PRIMARY KEY,
@@ -90,6 +263,7 @@ async function initDatabase() {
     )
   `);
 
+  // Clients
   db.run(`
     CREATE TABLE IF NOT EXISTS clients (
       id TEXT PRIMARY KEY,
@@ -115,6 +289,7 @@ async function initDatabase() {
     )
   `);
 
+  // Products
   db.run(`
     CREATE TABLE IF NOT EXISTS products (
       id TEXT PRIMARY KEY,
@@ -127,6 +302,7 @@ async function initDatabase() {
     )
   `);
 
+  // Plans
   db.run(`
     CREATE TABLE IF NOT EXISTS plans (
       id TEXT PRIMARY KEY,
@@ -140,6 +316,7 @@ async function initDatabase() {
     )
   `);
 
+  // Requests
   db.run(`
     CREATE TABLE IF NOT EXISTS requests (
       id TEXT PRIMARY KEY,
@@ -159,6 +336,7 @@ async function initDatabase() {
     )
   `);
 
+  // Payments
   db.run(`
     CREATE TABLE IF NOT EXISTS payments (
       id TEXT PRIMARY KEY,
@@ -178,6 +356,7 @@ async function initDatabase() {
     )
   `);
 
+  // Reactivations
   db.run(`
     CREATE TABLE IF NOT EXISTS reactivations (
       id TEXT PRIMARY KEY,
@@ -190,6 +369,7 @@ async function initDatabase() {
     )
   `);
 
+  // Notifications
   db.run(`
     CREATE TABLE IF NOT EXISTS notifications (
       id TEXT PRIMARY KEY,
@@ -203,6 +383,7 @@ async function initDatabase() {
     )
   `);
 
+  // Logs
   db.run(`
     CREATE TABLE IF NOT EXISTS logs (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -216,6 +397,7 @@ async function initDatabase() {
     )
   `);
 
+  // Settings
   db.run(`
     CREATE TABLE IF NOT EXISTS settings (
       key TEXT PRIMARY KEY,
@@ -224,17 +406,7 @@ async function initDatabase() {
     )
   `);
 
-  db.run(`
-    CREATE TABLE IF NOT EXISTS sms_history (
-      id TEXT PRIMARY KEY,
-      client_id TEXT,
-      tipo TEXT,
-      mensagem TEXT,
-      status TEXT DEFAULT 'enviado',
-      created_at TEXT DEFAULT (datetime('now'))
-    )
-  `);
-
+  // Page views
   db.run(`
     CREATE TABLE IF NOT EXISTS page_views (
       id TEXT PRIMARY KEY,
@@ -245,40 +417,7 @@ async function initDatabase() {
     )
   `);
 
-  // Add tracking columns (safe migration — ignores error if already exists)
-  try { db.run(`ALTER TABLE clients ADD COLUMN pushinpay_click_count INTEGER DEFAULT 0`); } catch (e) {}
-  try { db.run(`ALTER TABLE clients ADD COLUMN pix_copied_count INTEGER DEFAULT 0`); } catch (e) {}
-  try { db.run(`ALTER TABLE clients ADD COLUMN last_active_at TEXT`); } catch (e) {}
-  try { db.run(`ALTER TABLE clients ADD COLUMN pushinpay_clicked_at TEXT`); } catch (e) {}
-  try { db.run(`ALTER TABLE clients ADD COLUMN pix_copied_at TEXT`); } catch (e) {}
-  try { db.run(`ALTER TABLE clients ADD COLUMN dispositivo TEXT`); } catch (e) {}
-  try { db.run(`ALTER TABLE clients ADD COLUMN modelo TEXT`); } catch (e) {}
-  try { db.run(`ALTER TABLE clients ADD COLUMN fabricante TEXT`); } catch (e) {}
-  try { db.run(`ALTER TABLE clients ADD COLUMN os TEXT`); } catch (e) {}
-  try { db.run(`ALTER TABLE clients ADD COLUMN navegador TEXT`); } catch (e) {}
-  try { db.run(`ALTER TABLE clients ADD COLUMN navegador_versao TEXT`); } catch (e) {}
-  try { db.run(`ALTER TABLE clients ADD COLUMN dispositivo_identificado_em TEXT`); } catch (e) {}
-  try { db.run(`ALTER TABLE clients ADD COLUMN dispositivo_atualizado_em TEXT`); } catch (e) {}
-  // Session table migrations
-  try { db.run(`ALTER TABLE sessions ADD COLUMN fabricante TEXT DEFAULT ''`); } catch (e) {}
-  try { db.run(`ALTER TABLE sessions ADD COLUMN navegador_versao TEXT DEFAULT ''`); } catch (e) {}
-  // Credential (password hash) field for client credentials
-  try { db.run(`ALTER TABLE clients ADD COLUMN senha_hash TEXT DEFAULT NULL`); } catch (e) {}
-  try { db.run(`ALTER TABLE clients ADD COLUMN senha_visivel TEXT DEFAULT NULL`); } catch (e) {}
-  // User table migrations for new module
-  try { db.run(`ALTER TABLE users ADD COLUMN login TEXT DEFAULT NULL`); } catch (e) {}
-  try { db.run(`ALTER TABLE users ADD COLUMN telefone TEXT DEFAULT NULL`); } catch (e) {}
-  try { db.run(`ALTER TABLE users ADD COLUMN foto TEXT DEFAULT NULL`); } catch (e) {}
-  try { db.run(`ALTER TABLE users ADD COLUMN nivel INTEGER DEFAULT 3`); } catch (e) {}
-  try { db.run(`ALTER TABLE users ADD COLUMN ultimo_acesso TEXT DEFAULT NULL`); } catch (e) {}
-  // App download tracking columns
-  try { db.run(`ALTER TABLE clients ADD COLUMN app_download_clicked_at TEXT DEFAULT NULL`); } catch (e) {}
-  try { db.run(`ALTER TABLE clients ADD COLUMN app_download_status TEXT DEFAULT NULL`); } catch (e) {}
-  // Plan escolhido column
-  try { db.run(`ALTER TABLE clients ADD COLUMN plano_escolhido TEXT DEFAULT ''`); } catch (e) {}
-  // Banese cliente flag
-  try { db.run(`ALTER TABLE clients ADD COLUMN banese_cliente INTEGER DEFAULT 0`); } catch (e) {}
-
+  // Client passwords
   db.run(`
     CREATE TABLE IF NOT EXISTS client_passwords (
       client_id TEXT PRIMARY KEY,
@@ -288,6 +427,7 @@ async function initDatabase() {
     )
   `);
 
+  // Sessions
   db.run(`
     CREATE TABLE IF NOT EXISTS sessions (
       id TEXT PRIMARY KEY,
@@ -312,6 +452,7 @@ async function initDatabase() {
     )
   `);
 
+  // Permissions
   db.run(`
     CREATE TABLE IF NOT EXISTS permissoes (
       id TEXT PRIMARY KEY,
@@ -332,21 +473,7 @@ async function initDatabase() {
     )
   `);
 
-  db.run(`
-    CREATE TABLE IF NOT EXISTS app_downloads (
-      id TEXT PRIMARY KEY,
-      client_id TEXT,
-      client_cpf TEXT,
-      client_nome TEXT,
-      status TEXT DEFAULT 'iniciado',
-      apk_available INTEGER DEFAULT 1,
-      device_info TEXT,
-      ip TEXT,
-      user_agent TEXT,
-      created_at TEXT DEFAULT (datetime('now'))
-    )
-  `);
-
+  // App versions
   db.run(`
     CREATE TABLE IF NOT EXISTS app_versions (
       id TEXT PRIMARY KEY,
@@ -364,28 +491,64 @@ async function initDatabase() {
     )
   `);
 
-  // Seed default admin user
-  const crypto = require('crypto');
-  const { v4: uuidv4 } = require('uuid');
+  // SMS history
+  db.run(`
+    CREATE TABLE IF NOT EXISTS sms_history (
+      id TEXT PRIMARY KEY,
+      client_id TEXT NOT NULL,
+      tipo TEXT NOT NULL,
+      mensagem TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'enviado',
+      created_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (client_id) REFERENCES clients(id)
+    )
+  `);
 
+  // App downloads
+  db.run(`
+    CREATE TABLE IF NOT EXISTS app_downloads (
+      id TEXT PRIMARY KEY,
+      client_id TEXT,
+      client_cpf TEXT,
+      client_nome TEXT,
+      status TEXT NOT NULL DEFAULT 'iniciado',
+      apk_available INTEGER DEFAULT 1,
+      device_info TEXT,
+      ip TEXT,
+      user_agent TEXT,
+      created_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (client_id) REFERENCES clients(id)
+    )
+  `);
+
+  // ═══════════════════════════════════════════════════════════
+  // EXECUTAR MIGRAÇÕES PENDENTES
+  // ═══════════════════════════════════════════════════════════
+  await runMigrations();
+
+  // ═══════════════════════════════════════════════════════════
+  // SEEDS (apenas se não existirem — seguro para reload)
+  // ═══════════════════════════════════════════════════════════
+
+  // Admin user
   const existingAdmin = get('SELECT id FROM users WHERE email = ?', ['admin@valesaude.com.br']);
   if (!existingAdmin) {
     const hash = crypto.createHash('sha256').update('admin123').digest('hex');
     run(`INSERT INTO users (id, email, password_hash, name, role, permissions, nivel) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [uuidv4(), 'admin@valesaude.com.br', hash, 'Administrador', 'admin', JSON.stringify(['*']), 3]);
+      [generateId(), 'admin@valesaude.com.br', hash, 'Administrador', 'admin', JSON.stringify(['*']), 3]);
     run(`INSERT INTO users (id, email, password_hash, name, role, permissions, nivel) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [uuidv4(), 'operador@valesaude.com.br', hash, 'Operador', 'operador', JSON.stringify(['dashboard.view', 'clientes.view', 'clientes.edit']), 1]);
+      [generateId(), 'operador@valesaude.com.br', hash, 'Operador', 'operador', JSON.stringify(['dashboard.view', 'clientes.view', 'clientes.edit']), 1]);
     run(`INSERT INTO users (id, email, password_hash, name, role, permissions, nivel) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [uuidv4(), 'suporte@valesaude.com.br', hash, 'Suporte', 'suporte', JSON.stringify(['clientes.view', 'notificacoes.view']), 1]);
+      [generateId(), 'suporte@valesaude.com.br', hash, 'Suporte', 'suporte', JSON.stringify(['clientes.view', 'notificacoes.view']), 1]);
   }
 
-  // Set nivel on existing users (default column may have set all to 3, fix it)
+  // Fix user levels
   try { run("UPDATE users SET nivel = 3, login = email WHERE role = 'admin' AND (nivel IS NULL OR nivel > 3 OR nivel = 3)"); } catch (e) {}
   try { run("UPDATE users SET nivel = 1, login = email WHERE role = 'operador' AND (nivel IS NULL OR nivel > 1)"); } catch (e) {}
   try { run("UPDATE users SET nivel = 1, login = email WHERE role = 'suporte' AND (nivel IS NULL OR nivel > 1)"); } catch (e) {}
   try { run("UPDATE users SET nivel = 1 WHERE nivel IS NULL"); } catch (e) {}
 
-  // Seed default permissions
+  // Default permissions
   const permList = [
     ['dashboard.view', 'Visualizar Dashboard'],
     ['clientes.view', 'Visualizar Clientes'],
@@ -410,11 +573,11 @@ async function initDatabase() {
   for (const [nome, descricao] of permList) {
     const existingPerm = get('SELECT id FROM permissoes WHERE nome = ?', [nome]);
     if (!existingPerm) {
-      run('INSERT INTO permissoes (id, nome, descricao) VALUES (?, ?, ?)', [uuidv4(), nome, descricao]);
+      run('INSERT INTO permissoes (id, nome, descricao) VALUES (?, ?, ?)', [generateId(), nome, descricao]);
     }
   }
 
-  // Seed default products
+  // Default products
   const existingProduct = get('SELECT id FROM products LIMIT 1');
   if (!existingProduct) {
     run(`INSERT INTO products (id, nome, descricao, tipo, preco) VALUES (?, ?, ?, ?, ?)`,
@@ -423,7 +586,7 @@ async function initDatabase() {
       [uuidv4(), 'Vale Saúde Físico', 'Cartão físico entregue em casa', 'fisico', 19.99]);
   }
 
-  // Seed default plans
+  // Default plans
   const existingPlan = get('SELECT id FROM plans LIMIT 1');
   if (!existingPlan) {
     run(`INSERT INTO plans (id, nome, descricao, preco_mensal, limite, beneficios) VALUES (?, ?, ?, ?, ?, ?)`,
@@ -433,7 +596,7 @@ async function initDatabase() {
   }
 
   scheduleSave();
-  console.log('[DB] Banco de dados inicializado com sucesso');
+  console.log('[DB] ✅ Banco de dados inicializado com sucesso');
 }
 
 // Graceful shutdown
@@ -442,7 +605,7 @@ process.on('SIGINT', () => {
     const data = db.export();
     const buffer = Buffer.from(data);
     fs.writeFileSync(DB_PATH, buffer);
-    console.log('[DB] Banco salvo e encerrado');
+    console.log('[DB] 💾 Banco salvo e encerrado');
   }
   process.exit(0);
 });

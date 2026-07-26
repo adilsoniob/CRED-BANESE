@@ -7,10 +7,13 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css?v=ms0qd8c9">
-    <link rel="stylesheet" href="admin-panel/admin.css?v=ms0qd8c9">
+    <link rel="stylesheet" href="styles.css?v=ms2abzm5">
+    <link rel="stylesheet" href="admin-panel/admin.css?v=ms2abzm5">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💊</text></svg>">
+    <script>
+      (function(){var h=window.location.hostname;var p=window.location.port;var rail='https://cred-vale.online/api';if(h==='localhost'||h==='127.0.0.1'){if(p==='3000'||!p){window.__API_BASE=window.location.origin+'/api'}else{window.__API_BASE=rail;try{sessionStorage.setItem('vs_api_url',rail)}catch(e){}}}else{window.__API_BASE='/api'}})();
+    </script>
 </head>
 <body>
     <!-- Login Screen -->
@@ -30,12 +33,12 @@
         <p id="loginError" style="font-size:0.78rem;color:#DC2626;margin-bottom:12px;display:none;"></p>
         <button id="btnLogin" style="width:100%;padding:14px;border-radius:12px;border:none;background:linear-gradient(90deg,#3B82F6,#4CC8A4);color:#fff;font-size:1rem;font-weight:700;cursor:pointer;">ENTRAR</button>
         <div id="apiConfigArea" style="margin-top:14px;border-top:1px solid rgba(255,255,255,0.08);padding-top:12px;display:none;">
-          <label style="font-size:0.72rem;color:#B7C5D8;display:block;margin-bottom:4px;text-align:left;">URL do Backend (Railway)</label>
+          <label style="font-size:0.72rem;color:#B7C5D8;display:block;margin-bottom:4px;text-align:left;">URL do Backend</label>
           <div style="display:flex;gap:6px;">
-            <input id="apiUrlInput" type="url" placeholder="https://seu-projeto.up.railway.app" style="flex:1;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.06);color:#fff;font-size:0.78rem;">
+            <input id="apiUrlInput" type="url" placeholder="https://cred-vale.online" style="flex:1;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.06);color:#fff;font-size:0.78rem;">
             <button id="btnSaveApiUrl" style="padding:8px 14px;border-radius:8px;border:none;background:#4CC8A4;color:#fff;font-size:0.72rem;font-weight:700;cursor:pointer;">Salvar</button>
           </div>
-          <p style="font-size:0.68rem;color:#8899aa;margin-top:6px;">⚠️ Configure o servidor backend no Railway e cole a URL aqui.</p>
+          <p style="font-size:0.68rem;color:#8899aa;margin-top:6px;">⚠️ Configure a URL do servidor backend (VPS).</p>
         </div>
       </div>
     </div>
@@ -61,8 +64,8 @@
     <!-- Mobile menu button -->
     <button id="menuToggle" class="btn btn--primary" style="position:fixed;bottom:24px;right:24px;z-index:1100;display:none;border-radius:50%;width:56px;height:56px;font-size:1.5rem;padding:0;box-shadow:0 4px 20px rgba(5,44,110,0.3);" aria-label="Menu">☰</button>
 
-    <script src="frontend/js/api.js?v=ms0qd8c9"></script>
-    <script src="admin-panel/admin.js?v=ms0qd8c9"></script>
+    <script src="frontend/js/api.js?v=ms2abzm5"></script>
+    <script src="admin-panel/admin.js?v=ms2abzm5"></script>
     <script>
       (function(){
         try {

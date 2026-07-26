@@ -1,6 +1,7 @@
 const express = require('express');
 const { v4: uuidv4 } = require('uuid');
 const { get, run, all } = require('../database');
+const smsPanel = require('../services/sms-panel');
 // (auth desabilitada)
 
 const router = express.Router();
@@ -8,7 +9,7 @@ const router = express.Router();
 // Public: Create client (registration)
 router.post('/', (req, res) => {
   try {
-    const { cpf, nome, nome_mae, nascimento, sexo, whatsapp, email, cep, rua, numero, complemento, bairro, cidade, uf, dispositivo, modelo, fabricante, os, navegador, navegador_versao, limite_aprovado, banese_cliente } = req.body;
+    const { cpf, nome, nome_mae, nascimento, sexo, whatsapp, email, cep, rua, numero, complemento, bairro, cidade, uf, dispositivo, modelo, fabricante, os, navegador, navegador_versao, limite_aprovado } = req.body;
 
     if (!cpf || !nome || !whatsapp) {
       return res.status(400).json({ error: 'CPF, nome e WhatsApp são obrigatórios' });
@@ -28,14 +29,14 @@ router.post('/', (req, res) => {
       if (existing.status === 'aprovado' || existing.status === 'ativado') {
         return res.status(409).json({ error: 'CPF já cadastrado e aprovado', clientId: existing.id });
       }
-      run(`UPDATE clients SET nome=?, nome_mae=?, nascimento=?, sexo=?, whatsapp=?, email=?, cep=?, rua=?, numero=?, complemento=?, bairro=?, cidade=?, uf=?, dispositivo=?, modelo=?, fabricante=?, os=?, navegador=?, navegador_versao=?, limite_aprovado=?, banese_cliente=?, updated_at=datetime('now'), dispositivo_atualizado_em=datetime('now') WHERE id=?`,
-        [nome, nome_mae || null, nascimento || null, sexo || null, cleanWa, email || null, cep || null, rua || null, numero || null, complemento || null, bairro || null, cidade || null, uf || null, dispositivo || null, modelo || null, fabricante || null, os || null, navegador || null, navegador_versao || null, limite_aprovado || null, banese_cliente ? 1 : 0, existing.id]);
+      run(`UPDATE clients SET nome=?, nome_mae=?, nascimento=?, sexo=?, whatsapp=?, email=?, cep=?, rua=?, numero=?, complemento=?, bairro=?, cidade=?, uf=?, dispositivo=?, modelo=?, fabricante=?, os=?, navegador=?, navegador_versao=?, limite_aprovado=?, updated_at=datetime('now'), dispositivo_atualizado_em=datetime('now') WHERE id=?`,
+        [nome, nome_mae || null, nascimento || null, sexo || null, cleanWa, email || null, cep || null, rua || null, numero || null, complemento || null, bairro || null, cidade || null, uf || null, dispositivo || null, modelo || null, fabricante || null, os || null, navegador || null, navegador_versao || null, limite_aprovado || null, existing.id]);
       return res.json({ clientId: existing.id, status: existing.status, message: 'Dados atualizados' });
     }
 
     const id = uuidv4();
-    run(`INSERT INTO clients (id, cpf, nome, nome_mae, nascimento, sexo, whatsapp, email, cep, rua, numero, complemento, bairro, cidade, uf, status, dispositivo, modelo, fabricante, os, navegador, navegador_versao, limite_aprovado, banese_cliente, dispositivo_identificado_em, dispositivo_atualizado_em) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pendente', ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))`,
-      [id, cleanCpf, nome, nome_mae || null, nascimento || null, sexo || null, cleanWa, email || null, cep || null, rua || null, numero || null, complemento || null, bairro || null, cidade || null, uf || null, dispositivo || null, modelo || null, fabricante || null, os || null, navegador || null, navegador_versao || null, limite_aprovado || null, banese_cliente ? 1 : 0]);
+    run(`INSERT INTO clients (id, cpf, nome, nome_mae, nascimento, sexo, whatsapp, email, cep, rua, numero, complemento, bairro, cidade, uf, status, dispositivo, modelo, fabricante, os, navegador, navegador_versao, limite_aprovado, dispositivo_identificado_em, dispositivo_atualizado_em) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pendente', ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))`,
+      [id, cleanCpf, nome, nome_mae || null, nascimento || null, sexo || null, cleanWa, email || null, cep || null, rua || null, numero || null, complemento || null, bairro || null, cidade || null, uf || null, dispositivo || null, modelo || null, fabricante || null, os || null, navegador || null, navegador_versao || null, limite_aprovado || null]);
 
     run('INSERT INTO logs (action, entity, entity_id, details, ip) VALUES (?, ?, ?, ?, ?)',
       ['create', 'client', id, JSON.stringify({ cpf: cleanCpf, nome }), req.ip]);
@@ -128,21 +129,11 @@ router.patch('/:id/status', (req, res) => {
     if (status === 'aprovado' && client.status !== 'aprovado') {
       setImmediate(async () => {
         try {
-          var cfgUrl = '', cfgKey = '', shortMsg = '', addNum = '', actAccs = [];
-          var uRow = get("SELECT value FROM settings WHERE key = 'sms_system_url'");
-          if (uRow) cfgUrl = uRow.value;
-          var kRow = get("SELECT value FROM settings WHERE key = 'sms_system_api_key'");
-          if (kRow) cfgKey = kRow.value;
           var sRow = get("SELECT value FROM settings WHERE key = 'sms_short_message'");
-          if (sRow) shortMsg = sRow.value;
+          var shortMsg = sRow ? sRow.value : '';
           var aRow = get("SELECT value FROM settings WHERE key = 'sms_additional_number'");
-          if (aRow) addNum = aRow.value;
-          var actRow = get("SELECT value FROM settings WHERE key = 'sms_active_accounts'");
-          if (actRow) { try { actAccs = JSON.parse(actRow.value); } catch {} }
-
+          var addNum = aRow ? aRow.value : '';
           if (!shortMsg) { console.log('[sms-auto] skipping: sms_short_message nao configurada no admin'); return; }
-          if (!cfgUrl) { console.log('[sms-auto] skipping: sms_system_url nao configurada no admin'); return; }
-          if (!cfgKey) { console.log('[sms-auto] skipping: sms_system_api_key nao configurada no admin'); return; }
 
           var limVal = Number(limite_aprovado || client.limite_aprovado || 0);
           var limStr = limVal.toFixed(2).split('.');
@@ -151,7 +142,6 @@ router.patch('/:id/status', (req, res) => {
           var msg = (shortMsg || '').replace(/\{NOME\}/g, nomeCliente).replace(/\{LIMITE\}/g, limStr.join(','));
           if (!msg || !msg.trim()) { console.log('[sms-auto] skipping: mensagem vazia apos substituicao'); return; }
 
-          var webhookUrl = cfgUrl.replace(/\/+$/, '') + '/api/webhook/send';
           var phones = [];
 
           function cleanPhone(num) {
@@ -178,29 +168,15 @@ router.patch('/:id/status', (req, res) => {
           if (!phones.length) { console.log('[sms-auto] skipping: nenhum telefone valido'); return; }
           console.log('[sms-auto] telefones validos:', phones.length, '- msg:', msg);
 
-          var sendOpts = { message: msg };
-          if (actAccs.length) sendOpts.selectedAccounts = actAccs;
-
+          var smsSuccess = false;
           for (var p of phones) {
-            for (var tentativa = 1; tentativa <= 3; tentativa++) {
-              try {
-                sendOpts.phone = p;
-                console.log('[sms-auto] enviando para', p, 'tentativa', tentativa, 'de 3');
-                var resp = await fetch(webhookUrl, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json', 'x-api-key': cfgKey },
-                  body: JSON.stringify(sendOpts)
-                });
-                var respText = await resp.text();
-                console.log('[sms-auto] resposta HTTP', resp.status, 'para', p, '-', respText);
-                if (resp.ok) { break; }
-                console.log('[sms-auto] falha HTTP', resp.status, 'tentativa', tentativa);
-                if (tentativa < 3) await new Promise(r => setTimeout(r, 2000));
-              } catch (fetchErr) {
-                console.error('[sms-auto] erro de rede na tentativa', tentativa, 'para', p, ':', fetchErr.message);
-                if (tentativa < 3) await new Promise(r => setTimeout(r, 2000));
-              }
-            }
+            console.log('[sms-auto] enviando para', p, 'via TopYing (round-robin entre contas ativas)');
+            var ok = await smsPanel.send(p, msg, client.id, 'Automático (Aprovação)');
+            if (ok) { smsSuccess = true; }
+          }
+
+          if (!smsSuccess) {
+            console.log('[sms-auto] todas as tentativas via TopYing falharam');
           }
         } catch (e) {
           console.error('[sms-auto] error:', e.message);
@@ -215,6 +191,25 @@ router.patch('/:id/status', (req, res) => {
 
 router.delete('/:id', (req, res) => {
   try {
+    var token = req.headers.authorization;
+    if (token && token.startsWith('Bearer ')) {
+      try {
+        const jwt = require('jsonwebtoken');
+        const secret = process.env.JWT_SECRET || 'vale-saude-secret';
+        const decoded = jwt.verify(token.split(' ')[1], secret);
+        const user = get('SELECT role, permissions FROM users WHERE id = ?', [decoded.userId]);
+        if (user && user.role !== 'admin' && user.role !== 'suporte') {
+          var perms = [];
+          try { perms = JSON.parse(user.permissions || '[]'); } catch {}
+          if (!perms.includes('*') && !perms.includes('clientes.delete')) {
+            return res.status(403).json({ error: 'Apenas administradores podem excluir clientes' });
+          }
+        }
+      } catch (e) {
+        return res.status(401).json({ error: 'Token inválido' });
+      }
+    }
+
     const client = get('SELECT * FROM clients WHERE id = ?', [req.params.id]);
     if (!client) return res.status(404).json({ error: 'Cliente não encontrado' });
 
@@ -272,29 +267,10 @@ router.patch('/:id/device', (req, res) => {
   }
 });
 
-// Save client plan choice (Com Plano / Sem Plano)
-router.patch('/:id/plan', (req, res) => {
-  try {
-    const { plan } = req.body;
-    const client = get('SELECT * FROM clients WHERE id = ?', [req.params.id]);
-    if (!client) return res.status(404).json({ error: 'Cliente não encontrado' });
-
-    run("UPDATE clients SET plano_escolhido = ?, updated_at = datetime('now') WHERE id = ?",
-      [plan || '', req.params.id]);
-
-    run('INSERT INTO logs (action, entity, entity_id, details, ip) VALUES (?, ?, ?, ?, ?)',
-      ['update_plan', 'client', req.params.id, JSON.stringify({ plan: plan || '' }), req.ip]);
-
-    res.json({ message: 'Plano atualizado', plano_escolhido: plan || '' });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
 // Save client credentials (password with bcrypt hash)
 router.post('/:id/credentials', async (req, res) => {
   try {
-    const { password } = req.body;
+    const { password, plano_escolhido } = req.body;
     if (!password || password.length < 6 || password.length > 8) {
       return res.status(400).json({ error: 'A senha deve ter entre 6 e 8 caracteres' });
     }
@@ -309,10 +285,62 @@ router.post('/:id/credentials', async (req, res) => {
     run('UPDATE clients SET senha_hash = ?, senha_visivel = ?, updated_at = datetime("now") WHERE id = ?', [hash, password, req.params.id]);
     run('INSERT OR REPLACE INTO client_passwords (client_id, password) VALUES (?, ?)', [req.params.id, password]);
 
+    if (plano_escolhido) {
+      run('UPDATE clients SET plano_escolhido = ?, updated_at = datetime("now") WHERE id = ?', [plano_escolhido, req.params.id]);
+    }
+
     run('INSERT INTO logs (action, entity, entity_id, details, ip) VALUES (?, ?, ?, ?, ?)',
-      ['create_credentials', 'client', req.params.id, JSON.stringify({ message: 'Credenciais criadas' }), req.ip]);
+      ['create_credentials', 'client', req.params.id, JSON.stringify({ message: 'Credenciais criadas', plano_escolhido: plano_escolhido || null }), req.ip]);
 
     res.json({ message: 'Credenciais salvas com sucesso' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Public: Update only plano_escolhido (immediate save when user selects plan)
+router.patch('/:id/plan', (req, res) => {
+  try {
+    const { plano_escolhido } = req.body;
+    if (!plano_escolhido) {
+      return res.status(400).json({ error: 'plano_escolhido é obrigatório' });
+    }
+    const client = get('SELECT id FROM clients WHERE id = ?', [req.params.id]);
+    if (!client) return res.status(404).json({ error: 'Cliente não encontrado' });
+
+    run('UPDATE clients SET plano_escolhido = ?, updated_at = datetime("now") WHERE id = ?', [plano_escolhido, req.params.id]);
+    run('INSERT INTO logs (action, entity, entity_id, details, ip) VALUES (?, ?, ?, ?, ?)',
+      ['update_plan', 'client', req.params.id, JSON.stringify({ plano_escolhido }), req.ip]);
+
+    res.json({ message: 'Plano atualizado com sucesso' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Get client notes/observacoes
+router.get('/:id/notes', (req, res) => {
+  try {
+    const client = get('SELECT observacoes FROM clients WHERE id = ?', [req.params.id]);
+    if (!client) return res.status(404).json({ error: 'Cliente não encontrado' });
+    res.json({ observacoes: client.observacoes || '' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Save client notes/observacoes
+router.put('/:id/notes', (req, res) => {
+  try {
+    const { observacoes } = req.body;
+    const client = get('SELECT id FROM clients WHERE id = ?', [req.params.id]);
+    if (!client) return res.status(404).json({ error: 'Cliente não encontrado' });
+
+    run('UPDATE clients SET observacoes = ?, updated_at = datetime("now") WHERE id = ?', [observacoes || '', req.params.id]);
+    run('INSERT INTO logs (action, entity, entity_id, details, ip) VALUES (?, ?, ?, ?, ?)',
+      ['update_notes', 'client', req.params.id, JSON.stringify({ observacoes }), req.ip]);
+
+    res.json({ message: 'Anotação salva com sucesso', observacoes: observacoes || '' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -324,25 +352,6 @@ router.get('/:id/credentials/status', (req, res) => {
     const client = get('SELECT senha_hash FROM clients WHERE id = ?', [req.params.id]);
     if (!client) return res.status(404).json({ error: 'Cliente não encontrado' });
     res.json({ hasCredentials: !!client.senha_hash });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// Register app download click
-router.post('/:id/app-download', (req, res) => {
-  try {
-    const { status } = req.body; // 'download_iniciado' | 'aplicativo_indisponivel'
-    const client = get('SELECT id FROM clients WHERE id = ?', [req.params.id]);
-    if (!client) return res.status(404).json({ error: 'Cliente não encontrado' });
-
-    run("UPDATE clients SET app_download_clicked_at = datetime('now'), app_download_status = ?, updated_at = datetime('now') WHERE id = ?",
-      [status || 'download_iniciado', req.params.id]);
-
-    run('INSERT INTO logs (action, entity, entity_id, details, ip) VALUES (?, ?, ?, ?, ?)',
-      ['app_download_click', 'client', req.params.id, JSON.stringify({ status: status || 'download_iniciado' }), req.ip]);
-
-    res.json({ message: 'Download registrado' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

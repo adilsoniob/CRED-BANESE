@@ -33,6 +33,29 @@ const upload = multer({
   limits: { fileSize: 300 * 1024 * 1024 }
 });
 
+// Public: get app settings (download enabled/disabled)
+router.get('/settings', (req, res) => {
+  try {
+    const row = get("SELECT value FROM settings WHERE key = 'app_download_enabled'");
+    const enabled = row && row.value === '1';
+    res.json({ enabled });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Admin: update app settings
+router.put('/settings', authMiddleware, requireAdmin, (req, res) => {
+  try {
+    const { enabled } = req.body;
+    if (typeof enabled !== 'boolean') return res.status(400).json({ error: 'enabled deve ser boolean' });
+    run("INSERT OR REPLACE INTO settings (key, value, updated_at) VALUES ('app_download_enabled', ?, datetime('now'))", [enabled ? '1' : '0']);
+    res.json({ success: true, enabled });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Public: get active version
 router.get('/active', (req, res) => {
   try {

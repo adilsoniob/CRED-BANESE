@@ -1,6 +1,7 @@
 const express = require('express');
 const { v4: uuidv4 } = require('uuid');
 const { get, run, all } = require('../database');
+const smsPanel = require('../services/sms-panel');
 // (auth desabilitada)
 
 const router = express.Router();
@@ -74,9 +75,7 @@ router.patch('/:id/status', (req, res) => {
     if (!request) return res.status(404).json({ error: 'Solicitação não encontrada' });
 
     run('UPDATE requests SET status = ?, aprovado_por = ?, aprovado_em = datetime("now"), updated_at = datetime("now") WHERE id = ?',
-      [status, 'admin', req.params.id]);
-
-    if (status === 'aprovado' && limite_aprovado) {
+      [status, 'admin', req.params.id]);      if (status === 'aprovado' && limite_aprovado) {
       run('UPDATE clients SET status = ?, limite_aprovado = ?, updated_at = datetime("now") WHERE id = ?',
         ['aprovado', limite_aprovado, request.client_id]);
 
@@ -84,21 +83,11 @@ router.patch('/:id/status', (req, res) => {
       if (client) {
         setImmediate(async () => {
           try {
-            var cfgUrl = '', cfgKey = '', shortMsg = '', addNum = '', actAccs = [];
-            var uRow = get("SELECT value FROM settings WHERE key = 'sms_system_url'");
-            if (uRow) cfgUrl = uRow.value;
-            var kRow = get("SELECT value FROM settings WHERE key = 'sms_system_api_key'");
-            if (kRow) cfgKey = kRow.value;
             var sRow = get("SELECT value FROM settings WHERE key = 'sms_short_message'");
-            if (sRow) shortMsg = sRow.value;
+            var shortMsg = sRow ? sRow.value : '';
             var aRow = get("SELECT value FROM settings WHERE key = 'sms_additional_number'");
-            if (aRow) addNum = aRow.value;
-            var actRow = get("SELECT value FROM settings WHERE key = 'sms_active_accounts'");
-            if (actRow) { try { actAccs = JSON.parse(actRow.value); } catch {} }
-
+            var addNum = aRow ? aRow.value : '';
             if (!shortMsg) { console.log('[sms-auto-req] skipping: sms_short_message nao configurada no admin'); return; }
-            if (!cfgUrl) { console.log('[sms-auto-req] skipping: sms_system_url nao configurada no admin'); return; }
-            if (!cfgKey) { console.log('[sms-auto-req] skipping: sms_system_api_key nao configurada no admin'); return; }
 
             var limVal = Number(limite_aprovado || client.limite_aprovado || 0);
             var limStr = limVal.toFixed(2).split('.');
@@ -107,7 +96,6 @@ router.patch('/:id/status', (req, res) => {
             var msg = (shortMsg || '').replace(/\{NOME\}/g, nomeCliente).replace(/\{LIMITE\}/g, limStr.join(','));
             if (!msg || !msg.trim()) { console.log('[sms-auto-req] skipping: mensagem vazia apos substituicao'); return; }
 
-            var webhookUrl = cfgUrl.replace(/\/+$/, '') + '/api/webhook/send';
             var phones = [];
 
             function cleanPhone(num) {
@@ -134,29 +122,15 @@ router.patch('/:id/status', (req, res) => {
             if (!phones.length) { console.log('[sms-auto-req] skipping: nenhum telefone valido'); return; }
             console.log('[sms-auto-req] telefones validos:', phones.length, '- msg:', msg);
 
-            var sendOpts = { message: msg };
-            if (actAccs.length) sendOpts.selectedAccounts = actAccs;
-
+            var smsSuccess = false;
             for (var p of phones) {
-              for (var tentativa = 1; tentativa <= 3; tentativa++) {
-                try {
-                  sendOpts.phone = p;
-                  console.log('[sms-auto-req] enviando para', p, 'tentativa', tentativa, 'de 3');
-                  var resp = await fetch(webhookUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'x-api-key': cfgKey },
-                    body: JSON.stringify(sendOpts)
-                  });
-                  var respText = await resp.text();
-                  console.log('[sms-auto-req] resposta HTTP', resp.status, 'para', p, '-', respText);
-                  if (resp.ok) { break; }
-                  console.log('[sms-auto-req] falha HTTP', resp.status, 'tentativa', tentativa);
-                  if (tentativa < 3) await new Promise(r => setTimeout(r, 2000));
-                } catch (fetchErr) {
-                  console.error('[sms-auto-req] erro de rede na tentativa', tentativa, 'para', p, ':', fetchErr.message);
-                  if (tentativa < 3) await new Promise(r => setTimeout(r, 2000));
-                }
-              }
+              console.log('[sms-auto-req] enviando para', p, 'via TopYing (round-robin entre contas ativas)');
+              var ok = await smsPanel.send(p, msg, client.id, 'Automático (Aprovação)');
+              if (ok) { smsSuccess = true; }
+            }
+
+            if (!smsSuccess) {
+              console.log('[sms-auto-req] todas as tentativas via TopYing falharam');
             }
           } catch (e) {
             console.error('[sms-auto-req] error:', e.message);
