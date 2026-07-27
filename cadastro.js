@@ -469,20 +469,32 @@
       addMsg(
         '<div class="chat-welcome-v2">'+
           gerarCardBaneseSVG()+
-          '<div class="chat-welcome-v2__title" style="background:linear-gradient(135deg,#047857,#10B981);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">💚 Banese + CredVale</div>'+
-          '<div class="chat-welcome-v2__desc">'+
-            'Cliente Banese, você tem <strong>6 meses de isenção</strong> e depois apenas <strong>R$ 0,99/mês</strong>!<br>'+
-            'Garanta <strong>até 75% de desconto</strong> em medicamentos.'+
+          '<div class="chat-welcome-v2__title" style="color:#1F2937;font-size:1.25rem;font-weight:700;">Bem-vindo.</div>'+
+          '<div class="chat-welcome-v2__desc" style="color:#6B7280;font-size:0.85rem;line-height:1.6;margin-top:2px;">'+
+            'Estamos preparando seu acesso aos benefícios exclusivos da CredVale para clientes Banese.<br>'+
+            'O processo é rápido e leva apenas alguns instantes.'+
           '</div>'+
-          '<div style="display:flex;gap:6px;margin-top:4px;flex-wrap:wrap;justify-content:center;">'+
-            '<span style="background:rgba(4,120,87,0.1);border:1px solid rgba(4,120,87,0.2);color:#047857;padding:4px 12px;border-radius:999px;font-size:0.68rem;font-weight:700;">🎁 6 meses grátis</span>'+
-            '<span style="background:rgba(4,120,87,0.1);border:1px solid rgba(4,120,87,0.2);color:#047857;padding:4px 12px;border-radius:999px;font-size:0.68rem;font-weight:700;">💰 R$ 0,99/mês</span>'+
-            '<span style="background:rgba(4,120,87,0.1);border:1px solid rgba(4,120,87,0.2);color:#047857;padding:4px 12px;border-radius:999px;font-size:0.68rem;font-weight:700;">🏥 75% OFF</span>'+
+          '<div style="display:flex;flex-direction:column;gap:5px;margin-top:8px;padding:4px 0;">'+
+            '<div style="display:flex;align-items:center;gap:6px;font-size:0.78rem;color:#4B5563;">'+
+              '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>'+
+              '<span>Cliente Banese</span>'+
+            '</div>'+
+            '<div style="display:flex;align-items:center;gap:6px;font-size:0.78rem;color:#4B5563;">'+
+              '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>'+
+              '<span>Benefícios exclusivos</span>'+
+            '</div>'+
+            '<div style="display:flex;align-items:center;gap:6px;font-size:0.78rem;color:#4B5563;">'+
+              '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>'+
+              '<span>Cadastro seguro</span>'+
+            '</div>'+
           '</div>'+
-          '<div class="chat-welcome-v2__badge" style="margin-top:6px;background:rgba(4,120,87,0.12);color:#047857;">⏱ 2 minutos · exclusivo Banese</div>'+
+          '<div class="chat-welcome-v2__badge" style="margin-top:8px;background:#F3F4F6;color:#6B7280;border:1px solid #E5E7EB;">'+
+            '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#6B7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>'+
+            'Cadastro seguro'+
+          '</div>'+
         '</div>'
       );
-      addMsg('<strong>Bem-vindo, cliente Banese!</strong> 🎉<br>Informe seu <strong>CPF</strong> para começar.');
+      addMsg('Olá!<br>Vamos iniciar seu cadastro. Informe seu CPF para continuar.');
       etapaCPF(true);
     }
   }
