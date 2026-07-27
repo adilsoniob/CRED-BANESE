@@ -1914,3 +1914,251 @@
   0%, 100% { opacity: 1; }
   50% { opacity: 0.5; }
 }
+
+/* ============================================================
+   CREDVALE DOWNLOAD MODALS (iOS-inspired redesign)
+   ============================================================ */
+.cred-dl-modal {
+  text-align: center;
+  padding: 6px 0;
+}
+
+.cred-dl-icon-wrap {
+  width: 72px;
+  height: 72px;
+  margin: 0 auto 16px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(16,185,129,0.08), rgba(5,150,105,0.04));
+  border: 1px solid rgba(16,185,129,0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.3s ease;
+}
+.cred-dl-icon-wrap--alert {
+  background: linear-gradient(135deg, rgba(239,68,68,0.08), rgba(220,38,38,0.04));
+  border-color: rgba(239,68,68,0.15);
+}
+.cred-dl-icon-wrap--success {
+  background: linear-gradient(135deg, rgba(16,185,129,0.12), rgba(5,150,105,0.06));
+  border-color: rgba(16,185,129,0.2);
+}
+
+.cred-dl-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #132A24;
+  margin: 0 0 8px;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+}
+
+.cred-dl-desc {
+  font-size: 0.85rem;
+  color: #475569;
+  margin: 0 0 16px;
+  line-height: 1.6;
+  padding: 0 4px;
+}
+.cred-dl-desc strong {
+  color: #059669;
+}
+
+.cred-dl-badge {
+  display: inline-block;
+  padding: 4px 14px;
+  border-radius: 999px;
+  background: rgba(5,150,105,0.08);
+  border: 1px solid rgba(5,150,105,0.15);
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #059669;
+  margin-bottom: 10px;
+  letter-spacing: 0.3px;
+}
+
+.cred-dl-footer {
+  font-size: 0.72rem;
+  color: #94a3b8;
+  text-align: center;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid #f1f5f9;
+  line-height: 1.5;
+}
+
+/* ---- Progress Bar ---- */
+.cred-dl-progress {
+  margin-bottom: 10px;
+}
+.cred-dl-progress-track {
+  height: 6px;
+  background: #f1f5f9;
+  border-radius: 999px;
+  overflow: hidden;
+  position: relative;
+}
+.cred-dl-progress-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #059669, #10B981);
+  border-radius: 999px;
+  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.cred-dl-progress-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 6px;
+}
+.cred-dl-progress-pct {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #059669;
+  font-variant-numeric: tabular-nums;
+}
+.cred-dl-progress-eta {
+  font-size: 0.68rem;
+  color: #94a3b8;
+}
+
+.cred-dl-stage {
+  font-size: 0.78rem;
+  color: #475569;
+  text-align: center;
+  min-height: 20px;
+  transition: all 0.3s ease;
+  font-weight: 500;
+}
+
+/* ---- Buttons ---- */
+.cred-dl-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 14px 20px;
+  border-radius: 16px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  -webkit-tap-highlight-color: transparent;
+  outline: none;
+}
+.cred-dl-btn:active {
+  transform: scale(0.97);
+}
+
+.cred-dl-btn--primary {
+  background: linear-gradient(135deg, #059669, #10B981);
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(5,150,105,0.25);
+}
+.cred-dl-btn--primary:hover {
+  box-shadow: 0 6px 24px rgba(5,150,105,0.35);
+  transform: translateY(-1px);
+}
+.cred-dl-btn--primary:active {
+  transform: scale(0.97);
+  box-shadow: 0 2px 8px rgba(5,150,105,0.2);
+}
+
+.cred-dl-btn--outline {
+  background: #ffffff;
+  color: #059669;
+  border: 1.5px solid rgba(5,150,105,0.25);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+}
+.cred-dl-btn--outline:hover {
+  border-color: #059669;
+  background: rgba(5,150,105,0.03);
+}
+.cred-dl-btn--outline:active {
+  background: rgba(5,150,105,0.06);
+  border-color: #059669;
+}
+
+/* ---- Device Card ---- */
+.cred-dl-device-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 8px 14px;
+  margin: 0 0 12px;
+  text-align: left;
+}
+.cred-dl-device-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+  border-bottom: 1px solid rgba(0,0,0,0.03);
+  font-size: 0.78rem;
+}
+.cred-dl-device-row:last-child {
+  border-bottom: none;
+}
+.cred-dl-device-lbl {
+  color: #64748b;
+  font-weight: 500;
+  min-width: 80px;
+}
+.cred-dl-device-val {
+  color: #0f172a;
+  font-weight: 600;
+  text-align: right;
+  word-break: break-word;
+}
+
+/* ---- Info Box ---- */
+.cred-dl-info-box {
+  margin: 0 0 14px;
+  padding: 10px 14px;
+  background: linear-gradient(135deg, rgba(5,150,105,0.04), rgba(16,185,129,0.02));
+  border-left: 3px solid #10B981;
+  border-radius: 10px;
+  font-size: 0.75rem;
+  color: #065F46;
+  line-height: 1.65;
+  text-align: left;
+}
+.cred-dl-info-box strong {
+  color: #047857;
+}
+
+/* ============================================================
+   RESPONSIVE: Download Modals
+   ============================================================ */
+@media (max-width: 420px) {
+  .cred-dl-icon-wrap {
+    width: 60px;
+    height: 60px;
+    margin-bottom: 12px;
+  }
+  .cred-dl-icon-wrap svg {
+    width: 36px;
+    height: 36px;
+  }
+  .cred-dl-title {
+    font-size: 1rem;
+  }
+  .cred-dl-desc {
+    font-size: 0.8rem;
+    margin-bottom: 12px;
+  }
+  .cred-dl-btn {
+    padding: 12px 16px;
+    font-size: 0.85rem;
+    border-radius: 14px;
+  }
+  .cred-dl-device-card {
+    padding: 6px 12px;
+  }
+  .cred-dl-device-row {
+    font-size: 0.72rem;
+    padding: 3px 0;
+  }
+}

