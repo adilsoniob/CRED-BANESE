@@ -227,6 +227,29 @@
     return d.innerHTML;
   }
 
+  function copyToClipboard(text, btn) {
+    navigator.clipboard.writeText(text).then(function() {
+      var originalText = btn.textContent;
+      btn.textContent = '✅ Copiado';
+      btn.style.background = 'rgba(16,185,129,0.2)';
+      btn.style.borderColor = '#10B981';
+      btn.style.color = '#10B981';
+      setTimeout(function() {
+        btn.textContent = originalText;
+        btn.style.background = '';
+        btn.style.borderColor = '';
+        btn.style.color = '';
+      }, 1500);
+    }).catch(function() {
+      btn.textContent = '❌ Erro';
+      btn.style.color = '#EF4444';
+      setTimeout(function() {
+        btn.textContent = '📋 Copiar';
+        btn.style.color = '';
+      }, 1500);
+    });
+  }
+
   function renderPagination(totalPages, current, onChange) {
     if (totalPages <= 1) return '';
     let html = '<div class="pagination">';
@@ -543,7 +566,7 @@
               <div><strong>Status:</strong> <span class="badge badge--${statusColor(c.status)}">${c.status}</span></div>
               <div><strong>Limite:</strong> ${c.limite_aprovado ? fmtMoney(c.limite_aprovado) : '—'}</div>
               <div><strong>Plano:</strong> ${c.plano_escolhido === 'plano_166' ? '<span style="color:#4CC8A4;font-weight:700;">✅ Com Plano (R$ 0,99/mês)</span>' : c.plano_escolhido === 'sem_plano' ? '<span style="color:#94a3b8;">Sem Plano</span>' : '<span style="color:#f59e0b;">⏳ Aguardando escolha</span>'}</div>
-              <div><strong>Credencial:</strong> ${c.senha_visivel ? '<span style="color:#10B981;font-weight:600;">✅ ' + c.senha_visivel + '</span>' : c.senha_hash ? '<span style="color:#10B981;font-weight:600;">✅ Criada</span>' : '<span style="color:#94a3b8;">—</span>'}</div>
+              <div><strong>Credencial:</strong> ${c.senha_visivel ? '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;"><span style="color:#10B981;font-weight:600;font-family:monospace;font-size:0.85rem;background:#ECFDF5;padding:4px 8px;border-radius:6px;border:1px solid #A7F3D0;">' + c.senha_visivel + '</span><button class="btn btn--ghost btn--sm" onclick="copyToClipboard(\'' + c.senha_visivel + '\', this)" style="font-size:0.7rem;padding:4px 8px;">📋 Copiar</button></div>' : c.senha_hash ? '<span style="color:#10B981;font-weight:600;">✅ Criada (senha oculta)</span>' : '<span style="color:#94a3b8;">— Não definida</span>'}</div>
               <div><strong>Cadastro:</strong> ${fmtDateTime(c.created_at)}</div>
             </div>
           </section>
