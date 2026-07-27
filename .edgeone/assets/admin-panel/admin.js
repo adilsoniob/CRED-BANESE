@@ -2919,7 +2919,7 @@
                 '<div style="font-size:0.85rem;font-weight:700;color:#0f172a;word-break:break-all;">' + escHtml(heroFile.filename) + '</div>' +
                 '<div style="font-size:0.72rem;color:#64748b;margin-top:4px;">' + (heroFile.sizeFormatted || '') + ' · ' + (heroFile.references ? heroFile.references.length + ' referência(s)' : '') + '</div>' +
                 '<div style="margin-top:10px;display:flex;gap:8px;">' +
-                  '<button class="btn btn--primary btn--sm" onclick="uploadAndReplace(\'' + escHtml(heroFile.filename) + '\')" style="font-size:0.78rem;">📤 Substituir Hero</button>' +
+                  '<button class="btn btn--primary btn--sm" onclick="uploadAndReplace(\'' + encodeURIComponent(heroFile.filename) + '\')" style="font-size:0.78rem;">📤 Substituir Hero</button>' +
                   '<button class="btn btn--ghost btn--sm" onclick="deployImages()" style="font-size:0.78rem;">🚀 Deploy</button>' +
                 '</div>' +
               '</div>' +
@@ -3005,8 +3005,8 @@
           '<div class="img-card__size">' + (img.sizeFormatted || '') + '</div>' +
           (files.length > 0 ? '<div class="img-card__files">' + files.slice(0, 3).map(function(f){ return '<div class="img-card__file">📄 ' + escHtml(f) + '</div>'; }).join('') + (files.length > 3 ? '<div style="color:#94a3b8;">+' + (files.length - 3) + ' mais</div>' : '') + '</div>' : '') +
           '<div class="img-card__actions">' +
-            '<button class="btn btn--sm btn--primary" onclick="replaceImage(\'' + escHtml(img.filename) + '\')" style="font-size:0.65rem;flex:1;">🔄 Trocar</button>' +
-            (type === 'unused' ? '<button class="btn btn--sm btn--danger" onclick="deleteImage(\'' + escHtml(img.filename) + '\')" style="font-size:0.65rem;">🗑️</button>' : '') +
+            '<button class="btn btn--sm btn--primary" onclick="replaceImage(\'' + encodeURIComponent(img.filename) + '\')" style="font-size:0.65rem;flex:1;">🔄 Trocar</button>' +
+            (type === 'unused' ? '<button class="btn btn--sm btn--danger" onclick="deleteImage(\'' + encodeURIComponent(img.filename) + '\')" style="font-size:0.65rem;">🗑️</button>' : '') +
           '</div>' +
         '</div>' +
       '</div>';
@@ -3058,21 +3058,8 @@
     renderRoute(route);
   };
 
-  window.replaceImage = async function(oldFilename) {
-    var newName = await showPromptModal('Substituir: ' + oldFilename, '', 'Nome do arquivo substituto (ex: novo-banner.webp)');
-    if (!newName || !newName.trim()) return;
-    newName = newName.trim();
-
-    try {
-      var result = await API.request('POST', '/admin/images/replace', { oldFilename: oldFilename, newFilename: newName });
-      showToast('✅ ' + oldFilename + ' → ' + newName + ' (' + result.count + ' arquivo(s) atualizado(s))');
-      setTimeout(function() { renderRoute('imagens'); }, 500);
-    } catch (e) {
-      showToast('Erro: ' + e.message, 'error');
-    }
-  };
-
-  window.deleteImage = async function(filename) {
+  window.deleteImage = async function(encodedFilename) {
+    var filename = decodeURIComponent(encodedFilename);
     var confirmed = await showConfirmModal('Excluir imagem', 'Excluir "' + filename + '" permanentemente?');
     if (!confirmed) return;
     try {
@@ -3130,6 +3117,13 @@
     }
   };
 
+  // Helper: get auth headers for fetch
+  function getAuthHeaders() {
+    var token = localStorage.getItem('vs_token');
+    if (token) return { 'Authorization': 'Bearer ' + token };
+    return {};
+  }
+
   // Upload de imagens — modal + upload-to-assets
   window.uploadImage = function() {
     showPopup(
@@ -3174,7 +3168,8 @@
       var formData = new FormData();
       formData.append("image", selectedFile);
       try {
-        var resp = await fetch(API.getApiUrl() + "/admin/images/upload", { method: "POST", body: formData });
+        var headers = getAuthHeaders();
+        var resp = await fetch(API.getApiUrl() + "/admin/images/upload", { method: "POST", body: formData, headers: headers });
         var data = await resp.json();
         if (!resp.ok) throw new Error(data.error || "Erro no upload");
         resultEl.style.display = "";
@@ -3188,13 +3183,14 @@
         resultEl.style.display = "";
         resultEl.style.background = "rgba(239,68,68,0.08)";
         resultEl.style.color = "#DC2626";
-        resultEl.textContent = "❌ " + e.message;
+        resultEl.textContent = "❌ " + (e.message || 'Falha na conexão com o servidor');
       }
     });
   };
 
   // Upload & Replace
-  window.uploadAndReplace = function(oldFilename) {
+  window.uploadAndReplace = function(encodedFilename) {
+    var oldFilename = decodeURIComponent(encodedFilename);
     showPopup(
       '<div style="text-align:center;padding:4px 0;">' +
         '<div style="font-size:2rem;margin-bottom:8px;">🔄</div>' +
@@ -3237,7 +3233,8 @@
       formData.append("image", selectedFile);
       formData.append("oldFilename", oldFilename);
       try {
-        var resp = await fetch(API.getApiUrl() + "/admin/images/upload-and-replace", { method: "POST", body: formData });
+        var headers = getAuthHeaders();
+        var resp = await fetch(API.getApiUrl() + "/admin/images/upload-and-replace", { method: "POST", body: formData, headers: headers });
         var data = await resp.json();
         if (!resp.ok) throw new Error(data.error || "Erro no upload");
         resultEl.style.display = "";
@@ -3251,13 +3248,14 @@
         resultEl.style.display = "";
         resultEl.style.background = "rgba(239,68,68,0.08)";
         resultEl.style.color = "#DC2626";
-        resultEl.textContent = "❌ " + e.message;
+        resultEl.textContent = "❌ " + (e.message || 'Falha na conexão com o servidor');
       }
     });
   };
 
   // Nova replaceImage com opção de upload
-  window.replaceImage = async function(oldFilename) {
+  window.replaceImage = async function(encodedFilename) {
+    var oldFilename = decodeURIComponent(encodedFilename);
     showPopup(
       '<div style="text-align:center;padding:4px 0;">' +
         '<div style="font-size:2rem;margin-bottom:8px;">🔄</div>' +
@@ -3273,7 +3271,7 @@
         '<div id="replaceResult" style="display:none;padding:8px 12px;border-radius:8px;font-size:0.78rem;font-weight:600;margin-bottom:8px;margin-top:8px;"></div>' +
       '</div>'
     );
-    document.getElementById("btnUploadNew").onclick = function() { closePopup(); window.uploadAndReplace(oldFilename); };
+    document.getElementById("btnUploadNew").onclick = function() { closePopup(); window.uploadAndReplace(encodedFilename); };
     document.getElementById("btnReplaceByName").onclick = async function() {
       var newName = document.getElementById("replaceFileName").value.trim();
       if (!newName) return;
