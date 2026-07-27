@@ -35,16 +35,8 @@
   let chosenPlan = '';
   let quizAnswers = {};
 
-  /* ---- Banese flow ---- */
-  var isBanese = sessionStorage.getItem('credvale_banese') === 'true';
-
-  // Se for Banese, zera os preços (R$0,99)
-  if (isBanese) {
-    __precos = { virtual: 0.99, fisico: 0.99 };
-  }
-
-  /* ---- Cache de preços dos produtos (vindo do painel) ---- */
-  var __precos = { virtual: 4.99, fisico: 19.99 };
+  /* ---- Cache de preços (fixo R$0,99 para clientes Banese) ---- */
+  var __precos = { virtual: 0.99, fisico: 0.99 };
 
   /* ---- WhatsApp de suporte (vindo do painel admin) ---- */
   var __supportWhatsApp = '';
@@ -103,13 +95,8 @@
   }
 
   async function carregarPrecos() {
-    if (isBanese) return; // Preços Banese fixos (R$0,99), não sobrescrever
-    try {
-      var prods = await fetch((window.__API_BASE||'/api')+'/products').then(function(r){ return r.json(); });
-      if (prods && prods.forEach) {
-        prods.forEach(function(p){ if (p.tipo && p.preco) __precos[p.tipo] = parseFloat(p.preco); });
-      }
-    } catch(e) {}
+    // Preços fixos para clientes Banese — não sobrescrever
+    return;
   }
 
   function getPreco(tipo) { return __precos[tipo] || (tipo==='virtual' ? 4.99 : 19.99); }
@@ -163,47 +150,6 @@
     return num;
   }
 
-  function gerarCardSVG(nome, limite, ultimos4, showLimite) {
-    var nd = abreviarNome(nome);
-    var u4 = String(ultimos4||'0000').padStart(4,'0').slice(0,4);
-    var lim = Number(limite||0).toFixed(2).replace('.',',');
-    var limHtml = showLimite !== false ? '<text x="28" y="198" font-family="Arial,sans-serif" font-size="11" fill="rgba(255,255,255,0.7)">Limite: <tspan font-weight="700" fill="white">R$ '+lim+'</tspan></text>' : '';
-    return '<div class="chat-card-welcome"><div class="chat-card-welcome__glow"></div><svg viewBox="0 0 340 210" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:280px;height:auto;display:block;margin:0 auto;border-radius:16px;box-shadow:0 12px 40px rgba(0,0,0,0.5);">'+
-      '<defs>'+
-        '<linearGradient id="cardBgV2" x1="0" y1="0" x2="1" y2="1">'+
-          '<stop offset="0%" stop-color="#0f172a"/>'+
-          '<stop offset="50%" stop-color="#1e293b"/>'+
-          '<stop offset="100%" stop-color="#0d9488"/>'+
-        '</linearGradient>'+
-        '<linearGradient id="cardLogoV2" x1="0" y1="0" x2="1" y2="1">'+
-          '<stop offset="0%" stop-color="#3B82F6"/>'+
-          '<stop offset="100%" stop-color="#4CC8A4"/>'+
-        '</linearGradient>'+
-        '<linearGradient id="chipGradV2" x1="0" y1="0" x2="1" y2="1">'+
-          '<stop offset="0%" stop-color="#fbbf24"/>'+
-          '<stop offset="100%" stop-color="#d97706"/>'+
-        '</linearGradient>'+
-        '<radialGradient id="cardGlowV2" cx="50%" cy="50%" r="70%">'+
-          '<stop offset="0%" stop-color="rgba(76,200,164,0.12)"/>'+
-          '<stop offset="100%" stop-color="transparent"/>'+
-        '</radialGradient>'+
-      '</defs>'+
-      '<rect width="340" height="210" rx="16" fill="url(#cardBgV2)"/>'+
-      '<rect width="340" height="210" rx="16" fill="url(#cardGlowV2)"/>'+
-      '<rect x="28" y="34" width="44" height="34" rx="5" fill="url(#chipGradV2)" opacity="0.9"/>'+
-      '<text x="312" y="55" font-family="\'Space Grotesk\',Arial,sans-serif" font-size="13" font-weight="800" fill="url(#cardLogoV2)" text-anchor="end">CREDVALE</text>'+
-      '<circle cx="278" cy="76" r="12" fill="#eb001b" opacity="0.6"/>'+
-      '<circle cx="290" cy="76" r="12" fill="#f79e1b" opacity="0.6"/>'+
-      '<text x="28" y="118" font-family="\'Courier New\',monospace" font-size="18" font-weight="700" fill="white" letter-spacing="3">****  ****  ****  '+u4+'</text>'+
-      '<text x="28" y="152" font-family="Arial,sans-serif" font-size="10" fill="rgba(255,255,255,0.5)">TITULAR</text>'+
-      '<text x="28" y="170" font-family="Arial,sans-serif" font-size="14" font-weight="600" fill="white">'+nd+'</text>'+
-      '<text x="300" y="152" font-family="Arial,sans-serif" font-size="10" fill="rgba(255,255,255,0.5)" text-anchor="end">VALIDADE</text>'+
-      '<text x="300" y="170" font-family="Arial,sans-serif" font-size="14" font-weight="600" fill="white" text-anchor="end">12/28</text>'+
-      '<text x="28" y="185" width="280" height="1" fill="rgba(255,255,255,0.1)"/>'+
-      limHtml+
-    '</svg></div>';
-  }
-
   function gerarCardBaneseSVG() {
     return '<div class="chat-card-welcome"><div class="chat-card-welcome__glow" style="background:radial-gradient(ellipse,rgba(4,120,87,0.15) 0%,transparent 70%);"></div><svg viewBox="0 0 340 210" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:280px;height:auto;display:block;margin:0 auto;border-radius:16px;box-shadow:0 12px 40px rgba(4,120,87,0.3);">'+
       '<defs>'+
@@ -236,43 +182,6 @@
       '<text x="312" y="168" font-family="Arial,sans-serif" font-size="8" fill="rgba(255,255,255,0.35)" text-anchor="end" letter-spacing="1">VALIDADE</text>'+
       '<text x="312" y="188" font-family="Arial,sans-serif" font-size="13" font-weight="600" fill="#ffffff" text-anchor="end">12/30</text>'+
       '<text x="28" y="203" font-family="Arial,sans-serif" font-size="6.5" fill="rgba(255,255,255,0.2)" letter-spacing="0.8">Cartao emitido sob parceria BANESE &#183; CREDVALE</text>'+
-    '</svg></div>';
-  }
-
-  function gerarCardPremium(nome) {
-    var nd = abreviarNome(nome||'TITULAR');
-    return '<div class="chat-card-welcome"><div class="chat-card-welcome__glow"></div><svg viewBox="0 0 340 210" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:280px;height:auto;display:block;margin:0 auto;border-radius:16px;box-shadow:0 12px 40px rgba(11,108,244,0.35),0 4px 12px rgba(0,200,83,0.15);">'+
-      '<defs>'+
-        '<linearGradient id="cardPremiumBg" x1="0" y1="0" x2="1" y2="1">'+
-          '<stop offset="0%" stop-color="#0B6CF4"/>'+
-          '<stop offset="50%" stop-color="#059669"/>'+
-          '<stop offset="100%" stop-color="#00C853"/>'+
-        '</linearGradient>'+
-        '<radialGradient id="cardPremiumGlow" cx="30%" cy="30%" r="80%">'+
-          '<stop offset="0%" stop-color="rgba(255,255,255,0.15)"/>'+
-          '<stop offset="100%" stop-color="transparent"/>'+
-        '</radialGradient>'+
-      '</defs>'+
-      '<rect width="340" height="210" rx="16" fill="url(#cardPremiumBg)"/>'+
-      '<rect width="340" height="210" rx="16" fill="url(#cardPremiumGlow)"/>'+
-      /* Decorative circles */
-      '<circle cx="290" cy="30" r="100" fill="rgba(255,255,255,0.05)"/>'+
-      '<circle cx="330" cy="50" r="60" fill="rgba(255,255,255,0.03)"/>'+
-      /* Logo + Brand */
-      '<image x="26" y="28" width="28" height="28" href="/assets/logo-app.png" preserveAspectRatio="xMidYMid meet"/>'+
-      '<text x="62" y="48" font-family="\'Space Grotesk\',Arial,sans-serif" font-size="14" font-weight="800" fill="#ffffff" letter-spacing="2.5">CREDVALE</text>'+
-      /* Chip */
-      '<rect x="28" y="78" width="42" height="32" rx="5" fill="rgba(255,255,255,0.18)"/>'+
-      '<rect x="31" y="81" width="36" height="26" rx="3" fill="rgba(255,255,255,0.1)"/>'+
-      /* Card number */
-      '<text x="28" y="143" font-family="\'Courier New\',monospace" font-size="20" font-weight="700" fill="#ffffff" letter-spacing="3">\u2605\u2605\u2605\u2605  \u2605\u2605\u2605\u2605  \u2605\u2605\u2605\u2605  0000</text>'+
-      /* Labels */
-      '<text x="28" y="174" font-family="Arial,sans-serif" font-size="8" fill="rgba(255,255,255,0.5)" letter-spacing="0.5">TITULAR</text>'+
-      '<text x="28" y="192" font-family="Arial,sans-serif" font-size="14" font-weight="600" fill="#ffffff">'+nd+'</text>'+
-      '<text x="312" y="174" font-family="Arial,sans-serif" font-size="8" fill="rgba(255,255,255,0.5)" text-anchor="end" letter-spacing="0.5">VALIDADE</text>'+
-      '<text x="312" y="192" font-family="Arial,sans-serif" font-size="14" font-weight="600" fill="#ffffff" text-anchor="end">12/28</text>'+
-      /* Tag */
-      '<text x="170" y="200" font-family="Arial,sans-serif" font-size="7" fill="rgba(255,255,255,0.3)" text-anchor="middle" letter-spacing="1.2">CREDVALE \u00b7 CART\u00c3O DE BENEF\u00cdCIOS</text>'+
     '</svg></div>';
   }
 
@@ -545,15 +454,12 @@
     hideInput();
     await sleep(400);
 
-    // Limpa a flag Banese do sessionStorage após usar
-    var baneseDetected = isBanese;
-    try { sessionStorage.removeItem('credvale_banese'); } catch(e) {}
-
     var savedCPF = sessionStorage.getItem('credvale_cpf');
     var savedName = sessionStorage.getItem('credvale_name');
 
-    if (baneseDetected) {
-      // Fluxo Banese Premium
+    if (savedCPF && savedName) {
+      window._iniciarChat();
+    } else {
       addMsg(
         '<div class="chat-welcome-v2">'+
           gerarCardBaneseSVG()+
@@ -571,21 +477,6 @@
         '</div>'
       );
       addMsg('<strong>Bem-vindo, cliente Banese!</strong> 🎉<br>Informe seu <strong>CPF</strong> para começar.');
-      etapaCPF(true);
-    } else if (savedCPF && savedName) {
-      window._iniciarChat();
-    } else {
-      addMsg(
-        '<div class="chat-welcome-v2">'+
-          gerarCardPremium()+
-          '<div class="chat-welcome-v2__title">💚 Economize mais com o CredVale!</div>'+
-          '<div class="chat-welcome-v2__desc">'+
-            'Garanta <strong>até 75% de desconto</strong> em medicamentos e solicite seu cartão com análise rápida.'+
-          '</div>'+
-          '<div class="chat-welcome-v2__badge">⏱ 2 minutos · sem burocracia</div>'+
-        '</div>'
-      );
-      addMsg('<strong>Informe seu CPF</strong> para continuar.');
       etapaCPF(true);
     }
   }
@@ -1002,7 +893,7 @@
       whatsapp: user.whatsapp, email: user.email,
       nome_mae: '', renda: '0', profissao: '', situacao: '',
       limite_aprovado: limite,
-      banese_cliente: isBanese ? 1 : 0,
+      banese_cliente: 1,
       dispositivo: sessionStorage.getItem('vs_dispositivo')||'Desktop',
       modelo: sessionStorage.getItem('vs_modelo')||'PC',
       fabricante: sessionStorage.getItem('vs_fabricante')||'',
