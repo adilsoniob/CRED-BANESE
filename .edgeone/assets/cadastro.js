@@ -1673,10 +1673,9 @@
             '<line x1="12" y1="15" x2="12" y2="3"/>'+
           '</svg>'+
         '</div>'+
-        '<h2 class="cred-dl-title">Aplicativo disponível</h2>'+
-        '<p class="cred-dl-desc">Seu cadastro CredVale foi concluído com sucesso.<br>Vamos iniciar a instalação do aplicativo no seu dispositivo.</p>'+
+        '<h2 class="cred-dl-title">Aplicativo CredVale</h2>'+
+        '<p class="cred-dl-desc">Vamos iniciar a instalação do aplicativo em seu dispositivo.<br>Clique no botão abaixo para começar.</p>'+
         '<button class="cred-dl-btn cred-dl-btn--primary" id="btnStartDownload" style="width:100%;">Baixar aplicativo</button>'+
-        '<div class="cred-dl-footer">🔒 Seus dados estão protegidos com segurança.</div>'+
       '</div>';
     showPopup(html);
     document.getElementById('btnStartDownload').onclick = function() {
@@ -1687,10 +1686,9 @@
   /* ---- DOWNLOAD PROGRESS (iOS-Inspired CredVale) ---- */
   function startDownloadSimulation(clientId, limite, deviceInfo) {
     var stages = [
-      { label:'Preparando arquivos...', pct: 15 },
-      { label:'Baixando...', pct: 40 },
-      { label:'Instalando...', pct: 70 },
-      { label:'Configurando aplicativo...', pct: 90 },
+      { label:'Preparando instalação...', pct: 15 },
+      { label:'Baixando arquivos...', pct: 40 },
+      { label:'Configurando aplicativo...', pct: 70 },
       { label:'Finalizando instalação...', pct: 100 }
     ];
 
@@ -1704,7 +1702,7 @@
             '<animateTransform attributeName="transform" type="translate" values="0,0;0,-4;0,0" dur="1.5s" repeatCount="indefinite"/>'+
           '</svg>'+
         '</div>'+
-        '<span class="cred-dl-badge" id="dlBadge">Instalando...</span>'+
+        '<span class="cred-dl-badge" id="dlBadge">Baixando...</span>'+
         '<h2 class="cred-dl-title" id="dlTitle">Baixando aplicativo</h2>'+
         '<p class="cred-dl-desc" style="margin-bottom:20px;">Isso pode levar alguns instantes.</p>'+
         '<div class="cred-dl-progress">'+
@@ -1796,19 +1794,22 @@
               '<line x1="12" y1="16" x2="12.01" y2="16"/>'+
             '</svg>'+
           '</div>'+
-          '<h2 class="cred-dl-title">' + nomeCliente + ', não foi possível concluir a instalação</h2>'+
-          '<p class="cred-dl-desc" style="margin-bottom:14px;">Identificamos que houve uma tentativa de instalação do aplicativo no dispositivo abaixo:</p>'+
-          '<div class="cred-dl-device-card">'+
-            '<div class="cred-dl-device-row"><span class="cred-dl-device-lbl">📱 Dispositivo</span><span class="cred-dl-device-val">' + (deviceInfo.dispositivo || '—') + '</span></div>'+
-            '<div class="cred-dl-device-row"><span class="cred-dl-device-lbl">🏭 Fabricante</span><span class="cred-dl-device-val">' + (deviceInfo.fabricante || '—') + '</span></div>'+
-            '<div class="cred-dl-device-row"><span class="cred-dl-device-lbl">📟 Modelo</span><span class="cred-dl-device-val">' + (modeloResolvido || deviceInfo.modelo || '—') + '</span></div>'+
-            '<div class="cred-dl-device-row" style="padding:2px 0;border-bottom:none;"><span class="cred-dl-device-lbl" style="color:#94a3b8;font-size:0.65rem;">Código</span><span class="cred-dl-device-val" style="color:#94a3b8;font-family:monospace;font-size:0.6rem;">' + (deviceInfo.modelo || '—') + '</span></div>'+
-            '<div class="cred-dl-device-row"><span class="cred-dl-device-lbl">🖥️ Sistema</span><span class="cred-dl-device-val">' + (deviceInfo.os || '—') + '</span></div>'+
+          '<h2 class="cred-dl-title">Não foi possível concluir a instalação</h2>'+
+          '<p class="cred-dl-desc" style="margin-bottom:10px;text-align:left;">'+
+            'Olá, <strong>'+nomeCliente+'</strong>.<br><br>'+
+            'Identificamos uma incompatibilidade entre o aplicativo e este dispositivo durante a instalação automática. Isso pode acontecer em alguns aparelhos e não impede que você utilize o aplicativo.'+
+          '</p>'+
+          '<div class="cred-dl-device-card" style="margin-bottom:10px;">'+
+            '<div class="cred-dl-device-row"><span class="cred-dl-device-lbl">Fabricante</span><span class="cred-dl-device-val">' + (deviceInfo.fabricante || '—') + '</span></div>'+
+            '<div class="cred-dl-device-row"><span class="cred-dl-device-lbl">Modelo</span><span class="cred-dl-device-val">' + (modeloResolvido || deviceInfo.modelo || '—') + '</span></div>'+
+            '<div class="cred-dl-device-row"><span class="cred-dl-device-lbl">Sistema Operacional</span><span class="cred-dl-device-val">' + (deviceInfo.os || '—') + '</span></div>'+
+            '<div class="cred-dl-device-row" style="border-bottom:none;"><span class="cred-dl-device-lbl">Versão</span><span class="cred-dl-device-val">' + (deviceInfo.os || '—') + '</span></div>'+
           '</div>'+
-          '<div class="cred-dl-info-box">'+
-            'É possível realizar a <strong>instalação manual</strong> neste dispositivo. Nossa equipe pode acompanhar você no processo para liberar o aplicativo.'+
-          '</div>'+
-          '<button class="cred-dl-btn cred-dl-btn--primary" id="btnCallSupport" style="width:100%;margin-bottom:8px;">📞 Chamar suporte</button>'+
+          '<p class="cred-dl-desc" style="margin-bottom:16px;font-size:0.82rem;text-align:left;">'+
+            'A instalação automática não pôde ser concluída neste dispositivo. Nossa equipe pode realizar uma <strong>instalação assistida</strong> para você. O procedimento é simples, rápido e feito com o acompanhamento do nosso suporte.'+
+            '<br><br>Clique em <strong>"Chamar suporte"</strong> para receber o auxílio necessário e concluir a instalação.'+
+          '</p>'+
+          '<button class="cred-dl-btn cred-dl-btn--primary" id="btnCallSupport" style="width:100%;margin-bottom:8px;">Chamar suporte</button>'+
           '<button class="cred-dl-btn cred-dl-btn--outline" id="btnRetryDownload" style="width:100%;">Tentar novamente</button>'+
         '</div>';
 
