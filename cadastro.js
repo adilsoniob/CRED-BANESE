@@ -494,7 +494,7 @@
           '</div>'+
         '</div>'
       );
-      addMsg('Olá!<br>Vamos iniciar seu cadastro. Informe seu CPF para continuar.');
+      addMsg('Olá.<br>Vamos iniciar seu cadastro. Informe seu CPF para continuar.');
       etapaCPF(true);
     }
   }
