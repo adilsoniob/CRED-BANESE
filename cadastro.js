@@ -467,34 +467,23 @@
       window._iniciarChat();
     } else {
       addMsg(
-        '<div class="chat-welcome-v2">'+
+        '<div class="chat-welcome-v2" style="gap:6px;">'+
           gerarCardBaneseSVG()+
-          '<div class="chat-welcome-v2__title" style="color:#1F2937;font-size:1.25rem;font-weight:700;">Bem-vindo.</div>'+
-          '<div class="chat-welcome-v2__desc" style="color:#6B7280;font-size:0.85rem;line-height:1.6;margin-top:2px;">'+
-            'Estamos preparando seu acesso aos benefícios exclusivos da CredVale para clientes Banese.<br>'+
-            'O processo é rápido e leva apenas alguns instantes.'+
+          '<div class="chat-welcome-v2__title" style="color:#1F2937;font-size:1.3rem;font-weight:700;line-height:1.2;">Vamos descobrir seu limite.</div>'+
+          '<div class="chat-welcome-v2__desc" style="color:#6B7280;font-size:0.82rem;line-height:1.45;margin:0;">'+
+            'Leva menos de 2 minutos. Informe seu CPF para consultar seu limite e ativar seus benefícios exclusivos.'+
           '</div>'+
-          '<div style="display:flex;flex-direction:column;gap:5px;margin-top:8px;padding:4px 0;">'+
-            '<div style="display:flex;align-items:center;gap:6px;font-size:0.78rem;color:#4B5563;">'+
-              '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>'+
-              '<span>Cliente Banese</span>'+
-            '</div>'+
-            '<div style="display:flex;align-items:center;gap:6px;font-size:0.78rem;color:#4B5563;">'+
-              '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>'+
-              '<span>Benefícios exclusivos</span>'+
-            '</div>'+
-            '<div style="display:flex;align-items:center;gap:6px;font-size:0.78rem;color:#4B5563;">'+
-              '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>'+
-              '<span>Cadastro seguro</span>'+
-            '</div>'+
+          '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:2px;justify-content:center;">'+
+            '<span style="font-size:0.7rem;color:#4B5563;background:#F9FAFB;padding:2px 8px;border-radius:999px;border:1px solid #E5E7EB;">✓ Consulta rápida</span>'+
+            '<span style="font-size:0.7rem;color:#4B5563;background:#F9FAFB;padding:2px 8px;border-radius:999px;border:1px solid #E5E7EB;">✓ Até 75% OFF em farmácias</span>'+
+            '<span style="font-size:0.7rem;color:#4B5563;background:#F9FAFB;padding:2px 8px;border-radius:999px;border:1px solid #E5E7EB;">✓ Cadastro seguro</span>'+
           '</div>'+
-          '<div class="chat-welcome-v2__badge" style="margin-top:8px;background:#F3F4F6;color:#6B7280;border:1px solid #E5E7EB;">'+
-            '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#6B7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>'+
-            'Cadastro seguro'+
+          '<div class="chat-welcome-v2__badge" style="margin-top:4px;background:#F3F4F6;color:#9CA3AF;font-size:0.65rem;font-weight:500;border:1px solid #E5E7EB;padding:3px 10px;">'+
+            '🔒 Ambiente protegido'+
           '</div>'+
         '</div>'
       );
-      addMsg('Olá.<br>Vamos iniciar seu cadastro. Informe seu CPF para continuar.');
+      addMsg('Olá! Informe seu CPF para consultar seu limite.');
       etapaCPF(true);
     }
   }
