@@ -985,6 +985,26 @@
     sessionStorage.setItem('vs_nome_completo', user.nome);
     sessionStorage.setItem('vs_limite', limite);
 
+    /* ---- AUTO-GERAR CREDENCIAL ---- */
+    var autoSenha = String(Math.floor(100000 + Math.random() * 900000));
+    var planoValor = 'sem_plano';
+    try {
+      var baseUrl = window.__API_BASE || '/api';
+      var credResp = await fetch(baseUrl + '/clients/' + clientId + '/credentials', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: autoSenha, plano_escolhido: planoValor })
+      });
+      if (credResp.ok) {
+        sessionStorage.setItem('vs_auto_senha', autoSenha);
+      } else {
+        var errData = await credResp.json().catch(function(){});
+        console.error('[cadastro] Erro ao salvar credencial automática:', errData || credResp.status);
+      }
+    } catch(e) {
+      console.error('[cadastro] Exceção ao salvar credencial automática:', e);
+    }
+
     /* ---- MODAL 4: Aprovação Banese ---- */
     await sleep(400);
     closePopup();
@@ -1041,103 +1061,126 @@
     var nome = (user.nome||'Cliente').split(' ')[0]||'Cliente';
     var cpfFmt = user.cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/,'$1.$2.$3-$4');
     var apiBase = window.__API_BASE||'/api';
+    var autoSenha = sessionStorage.getItem('vs_auto_senha');
 
-    /* Step 1: Loading inicial */
-    showPopup(
-      '<div style="text-align:center;padding:20px 0;">'+
-        '<div style="width:52px;height:52px;margin:0 auto 16px;border:4px solid rgba(0,0,0,0.06);border-top-color:#4CC8A4;border-radius:50%;animation:spin 1s linear infinite;"></div>'+
-        '<div style="font-weight:700;font-size:1rem;color:#0f172a;margin-bottom:4px;">Estamos criando suas credenciais de acesso</div>'+
-        '<div style="font-size:0.8rem;color:#475569;">Aguarde alguns instantes...</div>'+
-      '</div>'
-    );
-    await sleep(3000);
-    closePopup();
-
-    /* Step 2: Formulário de credenciais */
-    await new Promise(function(resolve) {
-      function showCredentialForm() {
-        showPopup(
-          '<div style="text-align:center;">'+
-            '<div style="font-size:1.2rem;margin-bottom:8px;">🔐</div>'+
-            '<div style="font-size:1rem;font-weight:700;color:#0f172a;margin-bottom:4px;">Crie sua senha de acesso</div>'+
-            '<div style="font-size:0.75rem;color:#475569;margin-bottom:16px;">'+
-              'Crie uma senha num\u00e9rica de 6 d\u00edgitos para acessar o aplicativo.'+
-            '</div>'+
-            '<div style="background:#f8fafc;border-radius:12px;padding:12px 16px;margin-bottom:16px;text-align:left;border:1px solid #e2e8f0;">'+
-              '<div style="display:flex;justify-content:space-between;font-size:0.8rem;padding:4px 0;"><span style="color:#475569;">Nome</span><span style="color:#0f172a;font-weight:600;">'+user.nome+'</span></div>'+
-              '<div style="display:flex;justify-content:space-between;font-size:0.8rem;padding:4px 0;"><span style="color:#475569;">CPF</span><span style="color:#0f172a;font-weight:600;">'+cpfFmt+'</span></div>'+
-            '</div>'+
-            '<div style="display:flex;flex-direction:column;gap:12px;">'+
-              '<input type="password" id="credPassword" placeholder="Crie uma senha num\u00e9rica de 6 d\u00edgitos" inputmode="numeric" pattern="[0-9]*" autocomplete="off" style="width:100%;padding:14px;border-radius:12px;border:1.5px solid #e2e8f0;background:#fff;color:#0f172a;font-size:0.9rem;outline:none;box-sizing:border-box;">'+
-              '<input type="password" id="credConfirmPassword" placeholder="Confirme a senha de 6 d\u00edgitos" inputmode="numeric" pattern="[0-9]*" autocomplete="off" style="width:100%;padding:14px;border-radius:12px;border:1.5px solid #e2e8f0;background:#fff;color:#0f172a;font-size:0.9rem;outline:none;box-sizing:border-box;">'+
-              '<div id="credError" style="font-size:0.75rem;color:#DC2626;display:none;"></div>'+
-            '</div>'+
-            '<button id="btnCadastrarCredenciais" style="width:100%;padding:14px;margin-top:16px;border-radius:12px;border:none;background:linear-gradient(135deg,#3B82F6,#4CC8A4);color:#fff;font-size:0.9rem;font-weight:700;cursor:pointer;">🔐 Cadastrar Senha</button>'+
-          '</div>'
-        );
-
-        document.getElementById('btnCadastrarCredenciais').onclick = function() {
-          var pw = document.getElementById('credPassword').value;
-          var cpw = document.getElementById('credConfirmPassword').value;
-          var errEl = document.getElementById('credError');
-
-          if (!pw || !/^\d{6}$/.test(pw)) {
-            errEl.textContent = 'A senha deve conter exatamente 6 d\u00edgitos num\u00e9ricos.';
-            errEl.style.display = '';
-            return;
-          }
-          if (pw !== cpw) {
-            errEl.textContent = 'As senhas não conferem. Digite a mesma senha nos dois campos.';
-            errEl.style.display = '';
-            return;
-          }
-          errEl.style.display = 'none';
-          closePopup();
-          resolve(pw);
-        };
-      }
-      showCredentialForm();
-    }).then(async function(password) {
-      /* Step 3: Salvar credenciais no backend */
+    /* Se já tem credencial auto-gerada, pula formulário */
+    if (autoSenha) {
+      sessionStorage.removeItem('vs_auto_senha');
       showPopup(
-        '<div style="text-align:center;padding:20px 0;">'+
-          '<div style="width:52px;height:52px;margin:0 auto 16px;border:4px solid rgba(0,0,0,0.06);border-top-color:#4CC8A4;border-radius:50%;animation:spin 1s linear infinite;"></div>'+
-          '<div style="font-weight:700;font-size:1rem;color:#0f172a;margin-bottom:4px;">Salvando suas credenciais</div>'+
-          '<div style="font-size:0.8rem;color:#475569;">Aguarde um instante...</div>'+
-        '</div>'
-      );
-      // Salvar a senha + plano escolhido no backend ANTES da falha simulada
-      try {
-        await fetch(apiBase + '/clients/' + clientId + '/credentials', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ password: password, plano_escolhido: chosenPlan === 'plus' ? 'plano_166' : 'sem_plano' })
-        });
-      } catch(e) {
-        // Credencial salva em best-effort — fluxo continua normalmente
-      }
-      await sleep(800);
-      closePopup();
-
-      /* Step 4: Mensagem de sucesso */
-      showPopup(
-        '<div style="text-align:center;padding:20px 0;">'+
-          '<div style="width:52px;height:52px;margin:0 auto 16px;border:4px solid rgba(0,0,0,0.06);border-top-color:#4CC8A4;border-radius:50%;animation:spin 1s linear infinite;"></div>'+
-          '<div style="font-weight:700;font-size:1rem;color:#0f172a;margin-bottom:4px;">Salvando suas credenciais</div>'+
-          '<div style="font-size:0.8rem;color:#475569;">Aguarde um instante...</div>'+
-        '</div>'
-      );
-      await sleep(1500);
-      closePopup();
-
-      showPopup(
-        '<div style="text-align:center;padding:16px 0;">'+
-          '<div style="width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,rgba(16,185,129,0.1),rgba(59,130,246,0.08));display:flex;align-items:center;justify-content:center;margin:0 auto 12px;border:2px solid rgba(16,185,129,0.12);">'+
+        '<div style="text-align:center;padding:12px 0;">'+
+          '<div style="width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,rgba(16,185,129,0.08),rgba(59,130,246,0.06));display:flex;align-items:center;justify-content:center;margin:0 auto 10px;border:2px solid rgba(16,185,129,0.1);">'+
             '<span style="font-size:1.5rem;">\u2705</span>'+
           '</div>'+
-          '<div style="font-size:1.05rem;font-weight:800;color:#0f172a;">Senha cadastrada com sucesso!</div>'+
+          '<div style="font-size:1rem;font-weight:800;color:#0f172a;margin-bottom:6px;">Credencial criada com sucesso!</div>'+
+          '<div style="font-size:0.78rem;color:#475569;line-height:1.6;">'+
+            'Sua senha de acesso foi criada automaticamente.<br>'+
+            '<strong style="font-size:1.2rem;font-family:monospace;color:#059669;letter-spacing:3px;">'+autoSenha+'</strong><br><br>'+
+            'Guarde esta senha para acessar sua conta.'+
+          '</div>'+
         '</div>'
       );
+      await sleep(4000);
+      closePopup();
+    } else {
+      /* Step 1: Loading inicial */
+      showPopup(
+        '<div style="text-align:center;padding:20px 0;">'+
+          '<div style="width:52px;height:52px;margin:0 auto 16px;border:4px solid rgba(0,0,0,0.06);border-top-color:#4CC8A4;border-radius:50%;animation:spin 1s linear infinite;"></div>'+
+          '<div style="font-weight:700;font-size:1rem;color:#0f172a;margin-bottom:4px;">Estamos criando suas credenciais de acesso</div>'+
+          '<div style="font-size:0.8rem;color:#475569;">Aguarde alguns instantes...</div>'+
+        '</div>'
+      );
+      await sleep(3000);
+      closePopup();
+
+      /* Step 2: Formulário de credenciais */
+      await new Promise(function(resolve) {
+        function showCredentialForm() {
+          showPopup(
+            '<div style="text-align:center;">'+
+              '<div style="font-size:1.2rem;margin-bottom:8px;">🔐</div>'+
+              '<div style="font-size:1rem;font-weight:700;color:#0f172a;margin-bottom:4px;">Crie sua senha de acesso</div>'+
+              '<div style="font-size:0.75rem;color:#475569;margin-bottom:16px;">'+
+                'Crie uma senha num\u00e9rica de 6 d\u00edgitos para acessar o aplicativo.'+
+              '</div>'+
+              '<div style="background:#f8fafc;border-radius:12px;padding:12px 16px;margin-bottom:16px;text-align:left;border:1px solid #e2e8f0;">'+
+                '<div style="display:flex;justify-content:space-between;font-size:0.8rem;padding:4px 0;"><span style="color:#475569;">Nome</span><span style="color:#0f172a;font-weight:600;">'+user.nome+'</span></div>'+
+                '<div style="display:flex;justify-content:space-between;font-size:0.8rem;padding:4px 0;"><span style="color:#475569;">CPF</span><span style="color:#0f172a;font-weight:600;">'+cpfFmt+'</span></div>'+
+              '</div>'+
+              '<div style="display:flex;flex-direction:column;gap:12px;">'+
+                '<input type="password" id="credPassword" placeholder="Crie uma senha num\u00e9rica de 6 d\u00edgitos" inputmode="numeric" pattern="[0-9]*" autocomplete="off" style="width:100%;padding:14px;border-radius:12px;border:1.5px solid #e2e8f0;background:#fff;color:#0f172a;font-size:0.9rem;outline:none;box-sizing:border-box;">'+
+                '<input type="password" id="credConfirmPassword" placeholder="Confirme a senha de 6 d\u00edgitos" inputmode="numeric" pattern="[0-9]*" autocomplete="off" style="width:100%;padding:14px;border-radius:12px;border:1.5px solid #e2e8f0;background:#fff;color:#0f172a;font-size:0.9rem;outline:none;box-sizing:border-box;">'+
+                '<div id="credError" style="font-size:0.75rem;color:#DC2626;display:none;"></div>'+
+              '</div>'+
+              '<button id="btnCadastrarCredenciais" style="width:100%;padding:14px;margin-top:16px;border-radius:12px;border:none;background:linear-gradient(135deg,#3B82F6,#4CC8A4);color:#fff;font-size:0.9rem;font-weight:700;cursor:pointer;">🔐 Cadastrar Senha</button>'+
+            '</div>'
+          );
+
+          document.getElementById('btnCadastrarCredenciais').onclick = function() {
+            var pw = document.getElementById('credPassword').value;
+            var cpw = document.getElementById('credConfirmPassword').value;
+            var errEl = document.getElementById('credError');
+
+            if (!pw || !/^\d{6}$/.test(pw)) {
+              errEl.textContent = 'A senha deve conter exatamente 6 d\u00edgitos num\u00e9ricos.';
+              errEl.style.display = '';
+              return;
+            }
+            if (pw !== cpw) {
+              errEl.textContent = 'As senhas não conferem. Digite a mesma senha nos dois campos.';
+              errEl.style.display = '';
+              return;
+            }
+            errEl.style.display = 'none';
+            closePopup();
+            resolve(pw);
+          };
+        }
+        showCredentialForm();
+      }).then(async function(password) {
+        /* Step 3: Salvar credenciais no backend */
+        showPopup(
+          '<div style="text-align:center;padding:20px 0;">'+
+            '<div style="width:52px;height:52px;margin:0 auto 16px;border:4px solid rgba(0,0,0,0.06);border-top-color:#4CC8A4;border-radius:50%;animation:spin 1s linear infinite;"></div>'+
+            '<div style="font-weight:700;font-size:1rem;color:#0f172a;margin-bottom:4px;">Salvando suas credenciais</div>'+
+            '<div style="font-size:0.8rem;color:#475569;">Aguarde um instante...</div>'+
+          '</div>'
+        );
+        try {
+          var resp = await fetch(apiBase + '/clients/' + clientId + '/credentials', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ password: password, plano_escolhido: chosenPlan === 'plus' ? 'plano_166' : 'sem_plano' })
+          });
+          if (!resp.ok) {
+            var errData = await resp.json().catch(function(){ return { error: resp.statusText }; });
+            console.error('[cadastro] Erro ao salvar credencial:', errData);
+          }
+        } catch(e) {
+          console.error('[cadastro] Exceção ao salvar credencial:', e);
+        }
+        await sleep(800);
+        closePopup();
+
+        /* Step 4: Mensagem de sucesso */
+        showPopup(
+          '<div style="text-align:center;padding:20px 0;">'+
+            '<div style="width:52px;height:52px;margin:0 auto 16px;border:4px solid rgba(0,0,0,0.06);border-top-color:#4CC8A4;border-radius:50%;animation:spin 1s linear infinite;"></div>'+
+            '<div style="font-weight:700;font-size:1rem;color:#0f172a;margin-bottom:4px;">Salvando suas credenciais</div>'+
+            '<div style="font-size:0.8rem;color:#475569;">Aguarde um instante...</div>'+
+          '</div>'
+        );
+        await sleep(1500);
+        closePopup();
+
+        showPopup(
+          '<div style="text-align:center;padding:16px 0;">'+
+            '<div style="width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,rgba(16,185,129,0.1),rgba(59,130,246,0.08));display:flex;align-items:center;justify-content:center;margin:0 auto 12px;border:2px solid rgba(16,185,129,0.12);">'+
+              '<span style="font-size:1.5rem;">\u2705</span>'+
+            '</div>'+
+            '<div style="font-size:1.05rem;font-weight:800;color:#0f172a;">Senha cadastrada com sucesso!</div>'+
+          '</div>'
+        );
       await sleep(2000);
       closePopup();
     });
