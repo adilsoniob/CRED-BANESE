@@ -764,7 +764,8 @@ router.post('/images/upload', function(req, res) {
   });
 });
 
-// POST /admin/images/upload-and-replace — upload file AND replace references in source files
+// POST /admin/images/upload-and-replace — upload file and OVERWRITE the old file, keeping the same filename
+// This avoids breaking references in source files and avoids multer's dedup renaming
 router.post('/images/upload-and-replace', function(req, res) {
   upload.single('image')(req, res, function(err) {
     if (err) {
@@ -774,59 +775,62 @@ router.post('/images/upload-and-replace', function(req, res) {
     if (!req.file) return res.status(400).json({ error: 'Nenhum arquivo enviado' });
 
     var oldFilename = req.body.oldFilename || '';
-    var newFilename = req.file.filename;
+    var tempFilename = req.file.filename; // multer may have renamed it
 
     if (!oldFilename) {
+      // Just upload, no replace — keep the multer-saved file
+      try {
+        if (fs.existsSync(EDGEONE_ASSETS_DIR)) {
+          fs.copyFileSync(path.join(ASSETS_DIR, tempFilename), path.join(EDGEONE_ASSETS_DIR, tempFilename));
+        }
+      } catch (syncErr) {}
       return res.json({
-        filename: newFilename,
+        filename: tempFilename,
         originalName: req.file.originalname,
         size: req.file.size,
-        message: '✅ ' + newFilename + ' enviado com sucesso!'
+        message: '✅ ' + tempFilename + ' enviado com sucesso!'
       });
     }
 
-    // Replace in source files
-    var sourceFiles = walkSourceFiles(ROOT_DIR, '');
-    var updatedFiles = [];
-    var escapedOld = oldFilename.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    var oldRegex = new RegExp(escapedOld, 'g');
+    // --- OVERWRITE the old file with the new content, preserving the original filename ---
+    var oldPath = path.join(ASSETS_DIR, oldFilename);
+    var tempPath = path.join(ASSETS_DIR, tempFilename);
 
-    for (var i = 0; i < sourceFiles.length; i++) {
-      var sf = sourceFiles[i];
-      try {
-        var content = fs.readFileSync(sf.fullPath, 'utf-8');
-        if (oldRegex.test(content)) {
-          content = content.replace(oldRegex, newFilename);
-          fs.writeFileSync(sf.fullPath, content, 'utf-8');
-          updatedFiles.push(sf.relPath);
-        }
-      } catch(e) {}
+    try {
+      // Read new content from multer-temp file
+      var newContent = fs.readFileSync(tempPath);
+
+      // Overwrite the old file with new content (preserving oldFilename)
+      fs.writeFileSync(oldPath, newContent);
+      console.log('[images] Substituído: ' + oldFilename + ' (via ' + tempFilename + ')');
+
+      // Remove the multer-created temp file (no longer needed)
+      if (tempFilename !== oldFilename) {
+        fs.unlinkSync(tempPath);
+      }
+    } catch (overwriteErr) {
+      return res.status(500).json({ error: 'Erro ao substituir arquivo: ' + overwriteErr.message });
     }
 
-    // Sync new file to EdgeOne assets, remove old file from EdgeOne
+    // Sync to EdgeOne assets (overwrite the old file there too)
     try {
       if (fs.existsSync(EDGEONE_ASSETS_DIR)) {
-        var newSrcPath = path.join(ASSETS_DIR, newFilename);
-        var newDestPath = path.join(EDGEONE_ASSETS_DIR, newFilename);
-        fs.copyFileSync(newSrcPath, newDestPath);
-        // Remove old file from EdgeOne if it exists
-        var oldDestPath = path.join(EDGEONE_ASSETS_DIR, oldFilename);
-        if (fs.existsSync(oldDestPath)) {
-          fs.unlinkSync(oldDestPath);
-        }
-        console.log('[images] Sincronizado para EdgeOne: ' + newFilename + ' (removido: ' + oldFilename + ')');
+        var destPath = path.join(EDGEONE_ASSETS_DIR, oldFilename);
+        fs.writeFileSync(destPath, newContent);
+        console.log('[images] Sincronizado para EdgeOne: ' + oldFilename);
       }
     } catch (syncErr) {
       console.error('[images] Erro ao sincronizar para EdgeOne:', syncErr.message);
     }
 
+    // No reference replacement needed — filename stays the same!
     res.json({
-      filename: newFilename,
+      filename: oldFilename,
       originalName: req.file.originalname,
       size: req.file.size,
-      message: '✅ ' + oldFilename + ' → ' + newFilename + ' (' + updatedFiles.length + ' arquivo(s) atualizado(s))',
-      updatedFiles: updatedFiles,
-      count: updatedFiles.length
+      message: '✅ ' + oldFilename + ' substituído com sucesso! (o nome do arquivo foi preservado, nenhuma referência precisou ser alterada)',
+      updatedFiles: [oldFilename + ' (conteúdo substituído)'],
+      count: 1
     });
   });
 });
