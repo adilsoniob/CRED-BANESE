@@ -326,8 +326,8 @@ async function initDatabase() {
     "app_download_clicked_at TEXT DEFAULT NULL",
     "app_download_status TEXT DEFAULT NULL"
   ];
-  for (var ci = 0; ci < _cols.length; ci++) {
-    try { db.run('ALTER TABLE clients ADD COLUMN ' + _cols[ci]); } catch(e) { if (!e.message.includes('duplicate column')) throw e; }
+  for (var colDef of _cols) {
+    try { db.run('ALTER TABLE clients ADD COLUMN ' + colDef); } catch(e) { if (!e.message.includes('duplicate column')) throw e; }
   }
 
   // Products
