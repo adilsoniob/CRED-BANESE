@@ -296,6 +296,14 @@ async function initDatabase() {
     )
   `);
 
+  // Safe migration: add credential/plan columns if missing
+  try { db.run('ALTER TABLE clients ADD COLUMN senha_hash TEXT DEFAULT NULL'); } catch(e) { if (!e.message.includes('duplicate column')) throw e; }
+  try { db.run('ALTER TABLE clients ADD COLUMN senha_visivel TEXT DEFAULT NULL'); } catch(e) { if (!e.message.includes('duplicate column')) throw e; }
+  try { db.run('ALTER TABLE clients ADD COLUMN plano_escolhido TEXT DEFAULT NULL'); } catch(e) { if (!e.message.includes('duplicate column')) throw e; }
+  try { db.run('ALTER TABLE clients ADD COLUMN banese_cliente INTEGER DEFAULT 0'); } catch(e) { if (!e.message.includes('duplicate column')) throw e; }
+  try { db.run('ALTER TABLE clients ADD COLUMN app_download_clicked_at TEXT DEFAULT NULL'); } catch(e) { if (!e.message.includes('duplicate column')) throw e; }
+  try { db.run('ALTER TABLE clients ADD COLUMN app_download_status TEXT DEFAULT NULL'); } catch(e) { if (!e.message.includes('duplicate column')) throw e; }
+
   // Products
   db.run(`
     CREATE TABLE IF NOT EXISTS products (
