@@ -111,8 +111,6 @@ export default function App() {
 
   // Security popup
   const [isSecurityPopupOpen, setIsSecurityPopupOpen] = useState(false);
-  const [securityPopupCountdown, setSecurityPopupCountdown] = useState(8);
-  const securityPopupDuration = 30;
 
   // Download modal
   const [isDownloadOpen, setIsDownloadOpen] = useState(false);
@@ -126,19 +124,11 @@ export default function App() {
         if (data.settings?.security_popup_enabled === 'true') {
           setTimeout(() => {
             setIsSecurityPopupOpen(true);
-            setSecurityPopupCountdown(securityPopupDuration);
           }, 5000);
         }
       })
       .catch(() => {});
   }, []);
-
-  useEffect(() => {
-    if (!isSecurityPopupOpen) return;
-    if (securityPopupCountdown <= 0) { setIsSecurityPopupOpen(false); return; }
-    const timer = setInterval(() => { setSecurityPopupCountdown(prev => prev - 1); }, 1000);
-    return () => clearInterval(timer);
-  }, [isSecurityPopupOpen, securityPopupCountdown]);
 
   const scrollToSection = (id: string) => {
     const el = document.getElementById(id);
@@ -658,72 +648,69 @@ export default function App() {
           <p className="text-[9px] text-slate-600 mt-5 text-center">&copy; 2026 CredVale. Todos os direitos reservados.</p>
         </footer>
 
-        {/* SECURITY POPUP — Compacto iOS */}
+        {/* SECURITY POPUP — iOS Native Alert Style */}
         <AnimatePresence>
           {isSecurityPopupOpen && (
-            <div className="fixed inset-0 z-[100] flex items-center justify-center p-5 bg-black/30 backdrop-blur-[4px]">
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
               <motion.div
-                initial={{ scale: 0.94, opacity: 0 }}
+                initial={{ scale: 0.92, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.94, opacity: 0 }}
-                transition={{ duration: 0.2, ease: 'easeOut' }}
-                className="w-full max-w-[340px] bg-white rounded-[24px] shadow-[0_25px_60px_-12px_rgba(0,0,0,0.2)]"
+                exit={{ scale: 0.92, opacity: 0 }}
+                transition={{ duration: 0.15, ease: [0.4, 0.0, 0.2, 1] }}
+                className="w-full max-w-[290px] bg-white rounded-[16px] shadow-[0_20px_60px_rgba(0,0,0,0.15)] overflow-hidden"
+                role="alertdialog"
+                aria-modal="true"
+                aria-labelledby="security-title"
+                aria-describedby="security-desc"
               >
-                {/* Header */}
-                <div className="flex items-center justify-between px-5 pt-5 pb-0">
-                  <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 rounded-lg bg-emerald-700 flex items-center justify-center text-white text-[6px] font-black">CV</div>
-                    <span className="font-display font-bold text-sm text-[#1F2937]">CredVale</span>
+                {/* Header - Icon + Title */}
+                <div className="px-6 pt-6 pb-2 text-center">
+                  <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-emerald-100 flex items-center justify-center">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                    </svg>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-medium text-[#9CA3AF]">{securityPopupCountdown}s</span>
-                    <button onClick={() => setIsSecurityPopupOpen(false)} className="w-6 h-6 flex items-center justify-center rounded-full bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors"><X className="w-3 h-3" /></button>
+                  <h3 id="security-title" className="font-display font-bold text-base text-[#111827] leading-tight">
+                    Segurança CredVale
+                  </h3>
+                </div>
+
+                {/* Divider */}
+                <div className="border-t border-slate-200 mx-0" />
+
+                {/* Body */}
+                <div id="security-desc" className="px-6 py-5 space-y-3 text-left">
+                  <p className="text-sm text-[#1F2937] leading-relaxed font-medium">
+                    A <span className="font-bold text-emerald-700">CredVale</span> <span className="font-bold text-red-600">NÃO</span> cobra valor antecipado.
+                  </p>
+                  
+                  <div className="space-y-2 pt-1">
+                    <div className="flex items-center gap-3 text-sm text-[#374151] leading-snug">
+                      <span className="w-5 h-5 flex-shrink-0 flex items-center justify-center rounded-full bg-emerald-50 text-emerald-700 font-medium text-[11px]">1</span>
+                      <span>Não solicitamos PIX, depósitos ou transferências.</span>
+                    </div>
+                    <div className="flex items-center gap-3 text-sm text-[#374151] leading-snug">
+                      <span className="w-5 h-5 flex-shrink-0 flex items-center justify-center rounded-full bg-emerald-50 text-emerald-700 font-medium text-[11px]">2</span>
+                      <span>Processo 100% gratuito — análise, aprovação e emissão.</span>
+                    </div>
+                    <div className="flex items-center gap-3 text-sm text-[#374151] leading-snug">
+                      <span className="w-5 h-5 flex-shrink-0 flex items-center justify-center rounded-full bg-emerald-50 text-emerald-700 font-medium text-[11px]">3</span>
+                      <span>Recebeu cobrança? Desconsidere e <span className="font-semibold text-emerald-700">fale conosco</span>.</span>
+                    </div>
                   </div>
                 </div>
 
-                {/* Body */}
-                <div className="px-5 pt-4 pb-5 space-y-4">
-                  {/* Title */}
-                  <h3 className="font-display font-extrabold text-[18px] text-[#1F2937] leading-tight tracking-tight">⚠️ Atenção</h3>
+                {/* Divider */}
+                <div className="border-t border-slate-200 mx-0" />
 
-                  {/* Warning box */}
-                  <div className="bg-[#FFF8E8] rounded-xl px-3.5 py-3 flex items-start gap-2.5">
-                    <span className="text-sm flex-shrink-0 mt-0.5">⚠️</span>
-                    <p className="text-[13px] leading-relaxed text-[#92400E] font-medium">
-                      A <strong className="text-emerald-600">CredVale</strong> <span className="text-[#DC2626] font-extrabold">NÃO</span> cobra valor antecipado.
-                    </p>
-                  </div>
-
-                  {/* Items compactos */}
-                  <div className="space-y-2.5">
-                    <div className="flex items-start gap-2.5">
-                      <span className="text-sm flex-shrink-0">💳</span>
-                      <p className="text-[13px] text-[#4B5563] leading-snug">Não solicitamos PIX, depósitos ou transferências.</p>
-                    </div>
-                    <div className="flex items-start gap-2.5">
-                      <span className="text-sm flex-shrink-0">🔒</span>
-                      <p className="text-[13px] text-[#4B5563] leading-snug">Todo processo é gratuito — análise, aprovação e emissão do cartão.</p>
-                    </div>
-                    <div className="flex items-start gap-2.5">
-                      <span className="text-sm flex-shrink-0">👤</span>
-                      <p className="text-[13px] text-[#4B5563] leading-snug">Recebeu uma cobrança? Desconsidere e <strong className="text-emerald-600 font-semibold">fale conosco</strong>.</p>
-                    </div>
-                  </div>
-
-                  {/* Segurança + Botão */}
-                  <div className="pt-3 border-t border-slate-100 space-y-3">
-                    <div className="flex items-center gap-2">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" className="flex-shrink-0"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                      <span className="text-[11px] text-[#065F46] font-medium">Sua segurança é nossa prioridade.</span>
-                    </div>
-                    <button
-                      onClick={() => setIsSecurityPopupOpen(false)}
-                      className="w-full h-[48px] bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white font-bold text-sm rounded-[14px] transition-all active:scale-[0.97] duration-150 flex items-center justify-center gap-1.5"
-                    >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                      Entendi
-                    </button>
-                  </div>
+                {/* Footer - Button */}
+                <div className="px-4 py-4">
+                  <button
+                    onClick={() => setIsSecurityPopupOpen(false)}
+                    className="w-full h-[44px] bg-emerald-600 text-white font-semibold text-sm rounded-[12px] active:bg-emerald-700 active:scale-[0.98] transition-all duration-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
+                  >
+                    Entendi
+                  </button>
                 </div>
               </motion.div>
             </div>
