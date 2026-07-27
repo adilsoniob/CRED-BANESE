@@ -115,7 +115,7 @@
   --chat-heading: #0f172a;
   --chat-radius: 12px;
   --chat-radius-lg: 16px;
-  --chat-radius-xl: 20px;
+  --chat-radius-xl: 24px;
   --chat-gradient: linear-gradient(135deg, #3B82F6, #10B981);
   --chat-shadow: 0 8px 32px rgba(0,0,0,0.08);
   --chat-shadow-lg: 0 16px 48px rgba(0,0,0,0.1);
@@ -2069,7 +2069,7 @@
 .cred-dl-btn--outline {
   background: #ffffff;
   color: #059669;
-  border: 1.5px solid rgba(5,150,105,0.25);
+  border: 1.5px solid rgba(5,150,105,0.4);
   box-shadow: 0 1px 4px rgba(0,0,0,0.04);
 }
 .cred-dl-btn--outline:hover {
