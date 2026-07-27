@@ -31,5 +31,9 @@
     "@types/node": "^22.14.0",
     "sharp": "^0.35.3",
     "typescript": "~5.8.2"
+  },
+  "edgeone": {
+    "name": "credvale",
+    "token": ""
   }
 }

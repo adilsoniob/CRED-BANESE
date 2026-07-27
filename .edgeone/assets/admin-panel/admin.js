@@ -2875,7 +2875,8 @@
           <div style="display:flex;gap:8px;">
             <button class="btn btn--outline btn--sm" onclick="uploadImage()">📤 Upload</button>
             <button class="btn btn--ghost btn--sm" onclick="refreshImages()" id="refreshImagesBtn">🔄 Atualizar</button>
-            <button class="btn btn--primary btn--sm" onclick="deployImages()" id="deployImagesBtn">🚀 Deploy EdgeOne</button>
+            <button class="btn btn--primary btn--sm" onclick="deployImages()" id="deployImagesBtn" title="Sincroniza imagens atualizadas com EdgeOne">🚀 Sincronizar EdgeOne</button>
+            <button class="btn btn--success btn--sm" onclick="deployFullImages()" id="deployFullBtn" title="Build completo + EdgeOne + git push">📦 Deploy Completo</button>
           </div>
         </header>
 
@@ -3105,14 +3106,27 @@
 
   window.deployImages = async function() {
     var btn = document.getElementById('deployImagesBtn');
-    if (btn) { btn.textContent = '⏳ Deploy...'; btn.disabled = true; }
+    if (btn) { btn.textContent = '⏳ Sincronizando...'; btn.disabled = true; }
     try {
       var result = await API.request('POST', '/admin/images/deploy');
       showToast('🚀 ' + result.message);
     } catch (e) {
       showToast('Erro: ' + e.message, 'error');
     } finally {
-      if (btn) { btn.textContent = '🚀 Deploy EdgeOne'; btn.disabled = false; }
+      if (btn) { btn.textContent = '🚀 Sincronizar EdgeOne'; btn.disabled = false; }
+    }
+  };
+
+  window.deployFullImages = async function() {
+    var btn = document.getElementById('deployFullBtn');
+    if (btn) { btn.textContent = '⏳ Deploy Completo...'; btn.disabled = true; }
+    try {
+      var result = await API.request('POST', '/admin/images/deploy-full');
+      showToast('📦 ' + result.message);
+    } catch (e) {
+      showToast('Erro: ' + e.message, 'error');
+    } finally {
+      if (btn) { btn.textContent = '📦 Deploy Completo'; btn.disabled = false; }
     }
   };
 

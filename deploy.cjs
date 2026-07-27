@@ -114,7 +114,7 @@ console.log('\n📂 Syncing frontend/js/...');
 });
 
 // ============================================================
-// 7. Sync root assets/ images to .edgeone/assets/assets/
+// 7. Sync root assets/ images to .edgeone/assets/
 // ============================================================
 console.log('\n📂 Syncing assets/...');
 var assetsDir = path.join(rootDir, 'assets');
@@ -122,16 +122,16 @@ if (fs.existsSync(assetsDir)) {
   var assetFiles = fs.readdirSync(assetsDir);
   assetFiles.forEach(function(f) {
     var src = path.join(assetsDir, f);
-    var dest = path.join(edgeAssets, 'assets', f);
+    var dest = path.join(edgeAssets, f);
     if (fs.statSync(src).isFile()) {
       fs.copyFileSync(src, dest);
     }
   });
-  console.log('  ✅ ' + assetFiles.length + ' assets copied');
+  console.log('  ✅ ' + assetFiles.length + ' assets copied to .edgeone/assets/');
 }
 
 // ============================================================
-// 8. Sync dist/ build assets to .edgeone/assets/assets/
+// 8. Sync dist/ build assets to .edgeone/assets/
 // ============================================================
 console.log('\n📂 Syncing dist/ build assets...');
 var distDir = path.join(rootDir, 'dist');
@@ -141,12 +141,12 @@ if (fs.existsSync(distDir)) {
     var distFiles = fs.readdirSync(distAssetsDir);
     distFiles.forEach(function(f) {
       var src = path.join(distAssetsDir, f);
-      var dest = path.join(edgeAssets, 'assets', f);
+      var dest = path.join(edgeAssets, f);
       if (fs.statSync(src).isFile()) {
         fs.copyFileSync(src, dest);
       }
     });
-    console.log('  ✅ ' + distFiles.length + ' dist assets copied');
+    console.log('  ✅ ' + distFiles.length + ' dist assets copied to .edgeone/assets/');
   }
   // Copy dist/index.html (has correct asset hashes)
   var distIndex = path.join(distDir, 'index.html');
@@ -162,7 +162,7 @@ if (fs.existsSync(distDir)) {
 // ============================================================
 console.log('\n📦 Deploying to EdgeOne...');
 try {
-  execSync('edgeone makers deploy --name credvale', {
+  execSync('npx --yes edgeone makers deploy --name credvale', {
     cwd: rootDir,
     stdio: 'inherit',
     timeout: 180000

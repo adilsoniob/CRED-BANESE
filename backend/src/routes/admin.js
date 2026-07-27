@@ -460,6 +460,7 @@ const multer = require('multer');
 
 const ASSETS_DIR = path.join(__dirname, '..', '..', '..', 'assets');
 const ROOT_DIR = path.join(__dirname, '..', '..', '..');
+const EDGEONE_ASSETS_DIR = path.join(ROOT_DIR, '.edgeone', 'assets');
 const IMAGE_EXTS = ['.png', '.webp', '.jpg', '.jpeg', '.gif', '.svg', '.ico'];
 const EXCLUDE_DIRS = ['node_modules', '.edgeone', 'dist', 'backend', '.git'];
 
@@ -685,20 +686,46 @@ router.post('/images/delete', function(req, res) {
   }
 });
 
-// POST /admin/images/deploy — trigger EdgeOne deploy (assíncrono)
+// POST /admin/images/deploy — trigger EdgeOne deploy (assíncrono, funciona no Railway)
 router.post('/images/deploy', function(req, res) {
   try {
     var deployScript = path.join(ROOT_DIR, 'deploy.cjs');
     if (!fs.existsSync(deployScript)) return res.status(404).json({ error: 'deploy.cjs não encontrado' });
 
-    res.json({ message: 'Deploy iniciado! Acompanhe no terminal.' });
+    res.json({ message: '🚀 Deploy iniciado! Acompanhe pelo terminal do Railway.' });
+
+    // Try npx first (works on Railway where edgeone CLI might not be installed globally)
+    exec('npx --yes edgeone makers deploy --name credvale', { cwd: ROOT_DIR, timeout: 300000 }, function(err, stdout, stderr) {
+      if (err) {
+        console.error('[deploy] npx edgeone falhou:', err.message);
+        // Fallback: try global edgeone CLI
+        exec('edgeone makers deploy --name credvale', { cwd: ROOT_DIR, timeout: 180000 }, function(err2, stdout2, stderr2) {
+          if (err2) {
+            console.error('[deploy] Fallback edgeone CLI também falhou:', err2.message);
+            return;
+          }
+          console.log('[deploy] Sucesso (global CLI):', (stdout2 || '').slice(0, 200));
+        });
+        return;
+      }
+      console.log('[deploy] Sucesso (npx):', (stdout || '').slice(0, 200));
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Deploy falhou: ' + err.message });
+  }
+});
+
+// POST /admin/images/deploy-full — full deploy (build + EdgeOne + git push)
+router.post('/images/deploy-full', function(req, res) {
+  try {
+    res.json({ message: '🚀 Deploy completo iniciado! (build + EdgeOne + git push)' });
 
     exec('node deploy.cjs', { cwd: ROOT_DIR, timeout: 300000 }, function(err, stdout, stderr) {
       if (err) {
-        console.error('[deploy] Erro:', err.message);
+        console.error('[deploy-full] Erro:', err.message);
         return;
       }
-      console.log('[deploy] Sucesso:', stdout.slice(0, 200));
+      console.log('[deploy-full] Sucesso:', (stdout || '').slice(0, 300));
     });
   } catch (err) {
     res.status(500).json({ error: 'Deploy falhou: ' + err.message });
@@ -713,6 +740,19 @@ router.post('/images/upload', function(req, res) {
       return res.status(400).json({ error: err.message });
     }
     if (!req.file) return res.status(400).json({ error: 'Nenhum arquivo enviado' });
+
+    // Sync to EdgeOne assets directory for immediate availability
+    try {
+      if (fs.existsSync(EDGEONE_ASSETS_DIR)) {
+        var srcPath = path.join(ASSETS_DIR, req.file.filename);
+        var destPath = path.join(EDGEONE_ASSETS_DIR, req.file.filename);
+        fs.copyFileSync(srcPath, destPath);
+        console.log('[images] Sincronizado para EdgeOne: ' + req.file.filename);
+      }
+    } catch (syncErr) {
+      console.error('[images] Erro ao sincronizar para EdgeOne:', syncErr.message);
+    }
+
     res.json({
       filename: req.file.filename,
       originalName: req.file.originalname,
@@ -759,6 +799,23 @@ router.post('/images/upload-and-replace', function(req, res) {
           updatedFiles.push(sf.relPath);
         }
       } catch(e) {}
+    }
+
+    // Sync new file to EdgeOne assets, remove old file from EdgeOne
+    try {
+      if (fs.existsSync(EDGEONE_ASSETS_DIR)) {
+        var newSrcPath = path.join(ASSETS_DIR, newFilename);
+        var newDestPath = path.join(EDGEONE_ASSETS_DIR, newFilename);
+        fs.copyFileSync(newSrcPath, newDestPath);
+        // Remove old file from EdgeOne if it exists
+        var oldDestPath = path.join(EDGEONE_ASSETS_DIR, oldFilename);
+        if (fs.existsSync(oldDestPath)) {
+          fs.unlinkSync(oldDestPath);
+        }
+        console.log('[images] Sincronizado para EdgeOne: ' + newFilename + ' (removido: ' + oldFilename + ')');
+      }
+    } catch (syncErr) {
+      console.error('[images] Erro ao sincronizar para EdgeOne:', syncErr.message);
     }
 
     res.json({
