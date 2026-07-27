@@ -176,7 +176,9 @@ async function runMigrations() {
       const statements = sql
         .split(';')
         .map(s => s.trim())
-        .filter(s => s.length > 0 && !s.startsWith('--'));
+        // Remove linhas de comentário do início e filtra linhas vazias/comentários
+.map(s => s.split('\n').filter(line => !line.trim().startsWith('--')).join('\n').trim())
+.filter(s => s.length > 0);
 
       for (const stmt of statements) {
         try {
@@ -258,6 +260,11 @@ async function initDatabase() {
       role TEXT NOT NULL DEFAULT 'operador',
       permissions TEXT DEFAULT '[]',
       active INTEGER DEFAULT 1,
+      login TEXT,
+      nivel INTEGER DEFAULT 1,
+      telefone TEXT,
+      foto TEXT,
+      ultimo_acesso TEXT,
       created_at TEXT DEFAULT (datetime('now')),
       updated_at TEXT DEFAULT (datetime('now'))
     )
