@@ -1189,7 +1189,7 @@
           '<div style="font-size:0.68rem;font-weight:600;color:#9CA3AF;">Apenas</div>' +
           '<div style="display:flex;align-items:baseline;gap:4px;margin-top:2px;">' +
             '<span style="font-size:1.1rem;font-weight:800;color:#111827;">R$</span>' +
-            '<span style="font-size:2rem;font-weight:900;color:#0B6CF4;letter-spacing:-0.025em;line-height:1;">1,66</span>' +
+            '<span style="font-size:2rem;font-weight:900;color:#0B6CF4;letter-spacing:-0.025em;line-height:1;">0,99</span>' +
             '<span style="font-size:0.7rem;font-weight:600;color:#6B7280;">/mês</span>' +
           '</div>' +
           '<div style="font-size:10px;font-weight:700;color:#16a34a;margin-top:3px;">✓ Sem limite de idade • Sem carência • Cancele quando quiser</div>' +
@@ -1267,7 +1267,7 @@
     var sexoLabel = user.sexo==='F'?'Feminino':user.sexo==='M'?'Masculino':user.sexo||'—';
     var enderecoFmt = (user.rua||'—')+', '+(user.numero||'s/n')+(user.complemento?' - '+user.complemento:'')+'<br>'+(user.bairro||'—')+' · '+(user.cidade||'—')+' - '+(user.uf||'—');
     var phoneFmt = user.whatsapp ? user.whatsapp.replace(/(\d{2})(\d{4,5})(\d{4})/,'($1) $2-$3') : '—';
-    var planoLabel = chosenPlan ? 'Plano CredVale (R$ 1,66/mês)' : 'Nenhum plano';
+    var planoLabel = 'Plano CredVale (R$ 0,99/mês)';
 
     showPopup(
       '<div style="text-align:center;">'+
@@ -2068,7 +2068,7 @@
       '<div style="text-align:center;background:#f8fafc;border-radius:12px;padding:14px;margin:4px 0;">'+
         '<div style="font-size:0.82rem;color:#475569;margin-bottom:2px;">💳 Plano selecionado:</div>'+
         '<div style="font-size:1.1rem;font-weight:800;color:#0f172a;">Plano Plus</div>'+
-        '<div style="font-size:1.6rem;font-weight:900;color:#0B6CF4;margin:6px 0 2px;">R$ 1,66</div>'+
+        '<div style="font-size:1.6rem;font-weight:900;color:#0B6CF4;margin:6px 0 2px;">R$ 0,99</div>'+
         '<div style="font-size:0.75rem;color:#64748b;">por mês</div>'+
         '<div style="font-size:0.72rem;color:#94a3b8;margin-top:4px;">📉 Assinatura mensal 2014 cancele quando quiser</div>'+
       '</div>'
@@ -2102,7 +2102,7 @@
     showPopup(
       '<div style="text-align:center;padding:4px 0;">'+
         '<div style="font-size:1.3rem;font-weight:800;color:#0f172a;margin-bottom:4px;">Pague com Pix</div>'+
-        '<div style="display:flex;justify-content:space-between;background:#f8fafc;border-radius:10px;padding:10px 14px;margin:10px 0;font-size:0.85rem;"><span style="color:#475569;">Plano CredVale</span><span style="font-weight:700;color:#0B6CF4;"R$ 1,66/mês</span></div>'+
+        '<div style="display:flex;justify-content:space-between;background:#f8fafc;border-radius:10px;padding:10px 14px;margin:10px 0;font-size:0.85rem;"><span style="color:#475569;">Plano CredVale</span><span style="font-weight:700;color:#0B6CF4;">R$ 0,99/mês</span></div>'+
         '<div id="pixLoading" style="padding:20px 0;font-size:0.85rem;color:#64748b;">⏳ Gerando pagamento...</div>'+
         '<div id="pixContent" style="display:none;">'+
           '<div id="pixQrArea" style="background:#fff;border:2px dashed #e2e8f0;border-radius:12px;padding:12px;margin:8px 0;text-align:center;min-height:140px;display:flex;align-items:center;justify-content:center;"></div>'+
