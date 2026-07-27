@@ -25,8 +25,8 @@ function cleanOldBuilds(dir) {
 }
 // Clean old builds from root assets/ (will be replaced by fresh dist build)
 cleanOldBuilds(path.join(rootDir, 'assets'));
-// Clean old builds from .edgeone/assets/assets/ (fresh ones come from dist)
-cleanOldBuilds(path.join(edgeAssets, 'assets'));
+// Clean old builds from .edgeone/assets/ (fresh ones come from dist and assets/)
+cleanOldBuilds(edgeAssets);
 
 // ============================================================
 // 1. Clean build from scratch

@@ -558,6 +558,8 @@ router.get('/images', function(req, res) {
         var match;
         while ((match = imageRegex.exec(content)) !== null) {
           var imgName = path.basename(match[1].trim());
+          // Skip false positives: just extension '.svg', placeholder text 'ex: novo-banner.webp', etc.
+          if (imgName.startsWith('.') || /[\s:]/.test(imgName)) continue;
           if (!references[imgName]) references[imgName] = [];
           var exists = references[imgName].some(function(r) { return r.file === sf.relPath && r.lineMatch === match[0]; });
           if (!exists) {
