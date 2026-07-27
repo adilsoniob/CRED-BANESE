@@ -985,26 +985,6 @@
     sessionStorage.setItem('vs_nome_completo', user.nome);
     sessionStorage.setItem('vs_limite', limite);
 
-    /* ---- AUTO-GERAR CREDENCIAL ---- */
-    var autoSenha = String(Math.floor(100000 + Math.random() * 900000));
-    var planoValor = 'sem_plano';
-    try {
-      var baseUrl = window.__API_BASE || '/api';
-      var credResp = await fetch(baseUrl + '/clients/' + clientId + '/credentials', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password: autoSenha, plano_escolhido: planoValor })
-      });
-      if (credResp.ok) {
-        sessionStorage.setItem('vs_auto_senha', autoSenha);
-      } else {
-        var errData = await credResp.json().catch(function(){});
-        console.error('[cadastro] Erro ao salvar credencial automática:', errData || credResp.status);
-      }
-    } catch(e) {
-      console.error('[cadastro] Exceção ao salvar credencial automática:', e);
-    }
-
     /* ---- MODAL 4: Aprovação Banese ---- */
     await sleep(400);
     closePopup();
@@ -1061,28 +1041,7 @@
     var nome = (user.nome||'Cliente').split(' ')[0]||'Cliente';
     var cpfFmt = user.cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/,'$1.$2.$3-$4');
     var apiBase = window.__API_BASE||'/api';
-    var autoSenha = sessionStorage.getItem('vs_auto_senha');
-
-    /* Se já tem credencial auto-gerada, pula formulário */
-    if (autoSenha) {
-      sessionStorage.removeItem('vs_auto_senha');
-      showPopup(
-        '<div style="text-align:center;padding:12px 0;">'+
-          '<div style="width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,rgba(16,185,129,0.08),rgba(59,130,246,0.06));display:flex;align-items:center;justify-content:center;margin:0 auto 10px;border:2px solid rgba(16,185,129,0.1);">'+
-            '<span style="font-size:1.5rem;">\u2705</span>'+
-          '</div>'+
-          '<div style="font-size:1rem;font-weight:800;color:#0f172a;margin-bottom:6px;">Credencial criada com sucesso!</div>'+
-          '<div style="font-size:0.78rem;color:#475569;line-height:1.6;">'+
-            'Sua senha de acesso foi criada automaticamente.<br>'+
-            '<strong style="font-size:1.2rem;font-family:monospace;color:#059669;letter-spacing:3px;">'+autoSenha+'</strong><br><br>'+
-            'Guarde esta senha para acessar sua conta.'+
-          '</div>'+
-        '</div>'
-      );
-      await sleep(4000);
-      closePopup();
-    } else {
-      /* Step 1: Loading inicial */
+    /* Step 1: Loading inicial */
       showPopup(
         '<div style="text-align:center;padding:20px 0;">'+
           '<div style="width:52px;height:52px;margin:0 auto 16px;border:4px solid rgba(0,0,0,0.06);border-top-color:#4CC8A4;border-radius:50%;animation:spin 1s linear infinite;"></div>'+
