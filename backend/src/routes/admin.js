@@ -450,17 +450,47 @@ router.get('/clients/:id/sms-history', (req, res) => {
 });
 
 // ============================================================
-// Image Manager — Scan, Replace & Deploy
+// Image Manager — Scan, Replace, Upload & Deploy
 // ============================================================
 
 const fs = require('fs');
 const path = require('path');
 const { exec } = require('child_process');
+const multer = require('multer');
 
 const ASSETS_DIR = path.join(__dirname, '..', '..', '..', 'assets');
 const ROOT_DIR = path.join(__dirname, '..', '..', '..');
 const IMAGE_EXTS = ['.png', '.webp', '.jpg', '.jpeg', '.gif', '.svg', '.ico'];
 const EXCLUDE_DIRS = ['node_modules', '.edgeone', 'dist', 'backend', '.git'];
+
+// Multer config — save uploaded files to assets/
+var uploadStorage = multer.diskStorage({
+  destination: function(req, file, cb) { cb(null, ASSETS_DIR); },
+  filename: function(req, file, cb) {
+    // Preserve original filename, add timestamp to avoid conflicts
+    var ext = path.extname(file.originalname).toLowerCase();
+    var base = path.basename(file.originalname, ext);
+    // Remove special chars, keep alphanumeric + dash + underscore
+    base = base.replace(/[^a-zA-Z0-9\-_]/g, '').substring(0, 60);
+    var finalName = base + ext;
+    // If file exists, add suffix
+    var counter = 1;
+    while (fs.existsSync(path.join(ASSETS_DIR, finalName))) {
+      finalName = base + '-' + counter + ext;
+      counter++;
+    }
+    cb(null, finalName);
+  }
+});
+var upload = multer({
+  storage: uploadStorage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB max
+  fileFilter: function(req, file, cb) {
+    var ext = path.extname(file.originalname).toLowerCase();
+    if (IMAGE_EXTS.includes(ext)) cb(null, true);
+    else cb(new Error('Formato não suportado: ' + ext + '. Use: ' + IMAGE_EXTS.join(', ')));
+  }
+});
 
 // Helper: recursively find source files
 function walkSourceFiles(dir, relativePath) {
@@ -652,6 +682,73 @@ router.post('/images/deploy', function(req, res) {
   } catch (err) {
     res.status(500).json({ error: 'Deploy falhou: ' + err.message });
   }
+});
+
+// POST /admin/images/upload — upload a new image to assets/
+router.post('/images/upload', function(req, res) {
+  upload.single('image')(req, res, function(err) {
+    if (err) {
+      if (err instanceof multer.MulterError) return res.status(400).json({ error: err.message });
+      return res.status(400).json({ error: err.message });
+    }
+    if (!req.file) return res.status(400).json({ error: 'Nenhum arquivo enviado' });
+    res.json({
+      filename: req.file.filename,
+      originalName: req.file.originalname,
+      size: req.file.size,
+      message: '✅ ' + req.file.filename + ' enviado com sucesso!'
+    });
+  });
+});
+
+// POST /admin/images/upload-and-replace — upload file AND replace references in source files
+router.post('/images/upload-and-replace', function(req, res) {
+  upload.single('image')(req, res, function(err) {
+    if (err) {
+      if (err instanceof multer.MulterError) return res.status(400).json({ error: err.message });
+      return res.status(400).json({ error: err.message });
+    }
+    if (!req.file) return res.status(400).json({ error: 'Nenhum arquivo enviado' });
+
+    var oldFilename = req.body.oldFilename || '';
+    var newFilename = req.file.filename;
+
+    if (!oldFilename) {
+      return res.json({
+        filename: newFilename,
+        originalName: req.file.originalname,
+        size: req.file.size,
+        message: '✅ ' + newFilename + ' enviado com sucesso!'
+      });
+    }
+
+    // Replace in source files
+    var sourceFiles = walkSourceFiles(ROOT_DIR, '');
+    var updatedFiles = [];
+    var escapedOld = oldFilename.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    var oldRegex = new RegExp(escapedOld, 'g');
+
+    for (var i = 0; i < sourceFiles.length; i++) {
+      var sf = sourceFiles[i];
+      try {
+        var content = fs.readFileSync(sf.fullPath, 'utf-8');
+        if (oldRegex.test(content)) {
+          content = content.replace(oldRegex, newFilename);
+          fs.writeFileSync(sf.fullPath, content, 'utf-8');
+          updatedFiles.push(sf.relPath);
+        }
+      } catch(e) {}
+    }
+
+    res.json({
+      filename: newFilename,
+      originalName: req.file.originalname,
+      size: req.file.size,
+      message: '✅ ' + oldFilename + ' → ' + newFilename + ' (' + updatedFiles.length + ' arquivo(s) atualizado(s))',
+      updatedFiles: updatedFiles,
+      count: updatedFiles.length
+    });
+  });
 });
 
 module.exports = router;

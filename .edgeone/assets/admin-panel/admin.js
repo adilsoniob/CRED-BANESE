@@ -2873,6 +2873,7 @@
         <header class="admin-header">
           <h1 class="admin-header__title">🖼️ Gerenciamento de Imagens</h1>
           <div style="display:flex;gap:8px;">
+            <button class="btn btn--outline btn--sm" onclick="uploadImage()">📤 Upload</button>
             <button class="btn btn--ghost btn--sm" onclick="refreshImages()" id="refreshImagesBtn">🔄 Atualizar</button>
             <button class="btn btn--primary btn--sm" onclick="deployImages()" id="deployImagesBtn">🚀 Deploy EdgeOne</button>
           </div>
@@ -3053,6 +3054,170 @@
     } finally {
       if (btn) { btn.textContent = '🚀 Deploy EdgeOne'; btn.disabled = false; }
     }
+  };
+
+  // Upload de imagens — modal + upload-to-assets
+  window.uploadImage = function() {
+    showPopup(
+      '<div style="text-align:center;padding:4px 0;">' +
+        '<div style="font-size:2rem;margin-bottom:8px;">📤</div>' +
+        '<div style="font-size:1rem;font-weight:700;color:#0f172a;margin-bottom:4px;">Upload de Imagem</div>' +
+        '<div style="font-size:0.78rem;color:#475569;margin-bottom:16px;">Selecione uma imagem para enviar para a pasta assets/</div>' +
+        '<div style="margin-bottom:16px;">' +
+          '<label for="uploadFileInput" style="display:inline-block;padding:12px 24px;border-radius:12px;border:2px dashed #3B82F6;background:rgba(59,130,246,0.04);color:#3B82F6;font-weight:600;font-size:0.85rem;cursor:pointer;width:100%;box-sizing:border-box;">📁 Clique para selecionar</label>' +
+          '<input type="file" id="uploadFileInput" accept="image/png,image/webp,image/jpeg,image/gif,image/svg+xml,image/x-icon" style="display:none;">' +
+        '</div>' +
+        '<div id="uploadPreviewArea" style="display:none;margin-bottom:12px;padding:8px;border-radius:8px;background:#f8fafc;border:1px solid #e2e8f0;">' +
+          '<img id="uploadPreview" style="max-width:100%;max-height:120px;border-radius:6px;display:block;margin:0 auto;">' +
+          '<div id="uploadFileName" style="font-size:0.75rem;color:#475569;margin-top:6px;text-align:center;"></div>' +
+        '</div>' +
+        '<div id="uploadResult" style="display:none;padding:8px 12px;border-radius:8px;font-size:0.78rem;font-weight:600;margin-bottom:12px;"></div>' +
+        '<button class="btn btn--primary" id="btnDoUpload" disabled style="width:100%;padding:12px;font-size:0.85rem;">📤 Enviar</button>' +
+      '</div>'
+    );
+    var fileInput = document.getElementById("uploadFileInput");
+    var previewArea = document.getElementById("uploadPreviewArea");
+    var previewImg = document.getElementById("uploadPreview");
+    var fileNameEl = document.getElementById("uploadFileName");
+    var uploadBtn = document.getElementById("btnDoUpload");
+    var resultEl = document.getElementById("uploadResult");
+    var selectedFile = null;
+    fileInput.addEventListener("change", async function() {
+      selectedFile = fileInput.files[0];
+      if (!selectedFile) return;
+      fileNameEl.textContent = selectedFile.name + " (" + (selectedFile.size / 1024).toFixed(1) + " KB)";
+      var reader = new FileReader();
+      reader.onload = function(e) { previewImg.src = e.target.result; };
+      reader.readAsDataURL(selectedFile);
+      previewArea.style.display = "";
+      uploadBtn.disabled = false;
+      uploadBtn.textContent = "📤 Enviar " + selectedFile.name;
+    });
+    uploadBtn.addEventListener("click", async function() {
+      if (!selectedFile) return;
+      uploadBtn.disabled = true;
+      uploadBtn.textContent = "⏳ Enviando...";
+      var formData = new FormData();
+      formData.append("image", selectedFile);
+      try {
+        var resp = await fetch(API.getApiUrl() + "/admin/images/upload", { method: "POST", body: formData });
+        var data = await resp.json();
+        if (!resp.ok) throw new Error(data.error || "Erro no upload");
+        resultEl.style.display = "";
+        resultEl.style.background = "rgba(16,185,129,0.1)";
+        resultEl.style.color = "#065F46";
+        resultEl.textContent = data.message;
+        setTimeout(function() { closePopup(); renderRoute(currentRoute || "imagens"); }, 1500);
+      } catch (e) {
+        uploadBtn.disabled = false;
+        uploadBtn.textContent = "📤 Enviar";
+        resultEl.style.display = "";
+        resultEl.style.background = "rgba(239,68,68,0.08)";
+        resultEl.style.color = "#DC2626";
+        resultEl.textContent = "❌ " + e.message;
+      }
+    });
+  };
+
+  // Upload & Replace
+  window.uploadAndReplace = function(oldFilename) {
+    showPopup(
+      '<div style="text-align:center;padding:4px 0;">' +
+        '<div style="font-size:2rem;margin-bottom:8px;">🔄</div>' +
+        '<div style="font-size:1rem;font-weight:700;color:#0f172a;margin-bottom:4px;">Substituir: ' + oldFilename + '</div>' +
+        '<div style="font-size:0.78rem;color:#475569;margin-bottom:16px;">Selecione a nova imagem. Ela substituirá a atual em todos os arquivos.</div>' +
+        '<div style="margin-bottom:16px;">' +
+          '<label for="uploadReplaceInput" style="display:inline-block;padding:12px 24px;border-radius:12px;border:2px dashed #059669;background:rgba(5,150,105,0.04);color:#059669;font-weight:600;font-size:0.85rem;cursor:pointer;width:100%;box-sizing:border-box;">📁 Selecionar imagem</label>' +
+          '<input type="file" id="uploadReplaceInput" accept="image/png,image/webp,image/jpeg,image/gif,image/svg+xml" style="display:none;">' +
+        '</div>' +
+        '<div id="uploadReplacePreview" style="display:none;margin-bottom:12px;padding:8px;border-radius:8px;background:#f8fafc;border:1px solid #e2e8f0;">' +
+          '<img id="uploadReplaceImg" style="max-width:100%;max-height:120px;border-radius:6px;display:block;margin:0 auto;">' +
+          '<div id="uploadReplaceName" style="font-size:0.75rem;color:#475569;margin-top:6px;text-align:center;"></div>' +
+        '</div>' +
+        '<div id="uploadReplaceResult" style="display:none;padding:8px 12px;border-radius:8px;font-size:0.78rem;font-weight:600;margin-bottom:12px;"></div>' +
+        '<button class="btn btn--primary" id="btnUploadReplace" disabled style="width:100%;padding:12px;font-size:0.85rem;">🔄 Enviar e Substituir</button>' +
+      '</div>'
+    );
+    var fileInput = document.getElementById("uploadReplaceInput");
+    var previewArea = document.getElementById("uploadReplacePreview");
+    var previewImg = document.getElementById("uploadReplaceImg");
+    var fileNameEl = document.getElementById("uploadReplaceName");
+    var uploadBtn = document.getElementById("btnUploadReplace");
+    var resultEl = document.getElementById("uploadReplaceResult");
+    var selectedFile = null;
+    fileInput.addEventListener("change", async function() {
+      selectedFile = fileInput.files[0];
+      if (!selectedFile) return;
+      fileNameEl.textContent = selectedFile.name + " (" + (selectedFile.size / 1024).toFixed(1) + " KB)";
+      var reader = new FileReader();
+      reader.onload = function(e) { previewImg.src = e.target.result; };
+      reader.readAsDataURL(selectedFile);
+      previewArea.style.display = "";
+      uploadBtn.disabled = false;
+    });
+    uploadBtn.addEventListener("click", async function() {
+      if (!selectedFile) return;
+      uploadBtn.disabled = true;
+      uploadBtn.textContent = "⏳ Enviando...";
+      var formData = new FormData();
+      formData.append("image", selectedFile);
+      formData.append("oldFilename", oldFilename);
+      try {
+        var resp = await fetch(API.getApiUrl() + "/admin/images/upload-and-replace", { method: "POST", body: formData });
+        var data = await resp.json();
+        if (!resp.ok) throw new Error(data.error || "Erro no upload");
+        resultEl.style.display = "";
+        resultEl.style.background = "rgba(16,185,129,0.1)";
+        resultEl.style.color = "#065F46";
+        resultEl.textContent = data.message;
+        setTimeout(function() { closePopup(); renderRoute(currentRoute || "imagens"); }, 1500);
+      } catch (e) {
+        uploadBtn.disabled = false;
+        uploadBtn.textContent = "🔄 Enviar e Substituir";
+        resultEl.style.display = "";
+        resultEl.style.background = "rgba(239,68,68,0.08)";
+        resultEl.style.color = "#DC2626";
+        resultEl.textContent = "❌ " + e.message;
+      }
+    });
+  };
+
+  // Nova replaceImage com opção de upload
+  window.replaceImage = async function(oldFilename) {
+    showPopup(
+      '<div style="text-align:center;padding:4px 0;">' +
+        '<div style="font-size:2rem;margin-bottom:8px;">🔄</div>' +
+        '<div style="font-size:1rem;font-weight:700;color:#0f172a;margin-bottom:4px;">Trocar: ' + oldFilename + '</div>' +
+        '<div style="font-size:0.78rem;color:#475569;margin-bottom:16px;">Escolha como deseja substituir esta imagem.</div>' +
+        '<button class="btn btn--primary" id="btnUploadNew" style="width:100%;padding:14px;font-size:0.85rem;margin-bottom:8px;">📤 Enviar nova imagem</button>' +
+        '<div style="font-size:0.75rem;color:#94a3b8;margin:4px 0;">— ou —</div>' +
+        '<div style="display:flex;gap:6px;margin-top:8px;">' +
+          '<input type="text" id="replaceFileName" placeholder="ex: novo-banner.webp" style="flex:1;padding:10px 12px;border-radius:8px;border:1px solid #e2e8f0;font-size:0.82rem;background:#fff;color:#0f172a;">' +
+          '<button class="btn btn--ghost" id="btnReplaceByName" style="padding:10px 16px;font-size:0.82rem;">Usar</button>' +
+        '</div>' +
+        '<div style="font-size:0.7rem;color:#94a3b8;text-align:left;margin-top:4px;">Digite o nome de um arquivo que já está em assets/</div>' +
+        '<div id="replaceResult" style="display:none;padding:8px 12px;border-radius:8px;font-size:0.78rem;font-weight:600;margin-bottom:8px;margin-top:8px;"></div>' +
+      '</div>'
+    );
+    document.getElementById("btnUploadNew").onclick = function() { closePopup(); window.uploadAndReplace(oldFilename); };
+    document.getElementById("btnReplaceByName").onclick = async function() {
+      var newName = document.getElementById("replaceFileName").value.trim();
+      if (!newName) return;
+      var resultEl = document.getElementById("replaceResult");
+      try {
+        var result = await API.request("POST", "/admin/images/replace", { oldFilename: oldFilename, newFilename: newName });
+        resultEl.style.display = "";
+        resultEl.style.background = "rgba(16,185,129,0.1)";
+        resultEl.style.color = "#065F46";
+        resultEl.textContent = "✅ " + result.count + " arquivo(s) atualizado(s)";
+        setTimeout(function() { closePopup(); renderRoute(currentRoute || "imagens"); }, 1000);
+      } catch (e) {
+        resultEl.style.display = "";
+        resultEl.style.background = "rgba(239,68,68,0.08)";
+        resultEl.style.color = "#DC2626";
+        resultEl.textContent = "❌ " + e.message;
+      }
+    };
   };
 
   // Expor funções para onclick em HTML dinâmico
