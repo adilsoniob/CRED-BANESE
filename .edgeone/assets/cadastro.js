@@ -1673,7 +1673,7 @@
           '</svg>'+
         '</div>'+
         '<h2 class="cred-dl-title">Aplicativo disponível</h2>'+
-        '<p class="cred-dl-desc">Seu cadastro foi concluído com sucesso.<br>Agora você já pode baixar o aplicativo e acessar todos os benefícios da CredVale.</p>'+
+        '<p class="cred-dl-desc">Seu cadastro CredVale foi concluído com sucesso.<br>Vamos iniciar a instalação do aplicativo no seu dispositivo.</p>'+
         '<button class="cred-dl-btn cred-dl-btn--primary" id="btnStartDownload" style="width:100%;">Baixar aplicativo</button>'+
         '<div class="cred-dl-footer">🔒 Seus dados estão protegidos com segurança.</div>'+
       '</div>';
@@ -1805,7 +1805,7 @@
             '<div class="cred-dl-device-row"><span class="cred-dl-device-lbl">🖥️ Sistema</span><span class="cred-dl-device-val">' + (deviceInfo.os || '—') + '</span></div>'+
           '</div>'+
           '<div class="cred-dl-info-box">'+
-            'A boa notícia é que <strong>é possível realizar a instalação manual</strong>, e nossa equipe pode acompanhar você durante todo o processo. O procedimento é simples, seguro e permite a liberação do aplicativo para funcionamento no seu dispositivo.'+
+            'É possível realizar a <strong>instalação manual</strong> neste dispositivo. Nossa equipe pode acompanhar você no processo para liberar o aplicativo.'+
           '</div>'+
           '<button class="cred-dl-btn cred-dl-btn--primary" id="btnCallSupport" style="width:100%;margin-bottom:8px;">📞 Chamar suporte</button>'+
           '<button class="cred-dl-btn cred-dl-btn--outline" id="btnRetryDownload" style="width:100%;">Tentar novamente</button>'+
