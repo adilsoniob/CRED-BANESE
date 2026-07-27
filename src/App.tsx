@@ -658,88 +658,69 @@ export default function App() {
           <p className="text-[9px] text-slate-600 mt-5 text-center">&copy; 2026 CredVale. Todos os direitos reservados.</p>
         </footer>
 
-        {/* SECURITY POPUP — Redesign Premium CredVale */}
+        {/* SECURITY POPUP — Compacto iOS */}
         <AnimatePresence>
           {isSecurityPopupOpen && (
-            <div className="fixed inset-0 z-[100] flex items-center justify-center p-5 bg-black/40 backdrop-blur-[6px]">
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-5 bg-black/30 backdrop-blur-[4px]">
               <motion.div
-                initial={{ scale: 0.92, opacity: 0, y: 16 }}
-                animate={{ scale: 1, opacity: 1, y: 0 }}
-                exit={{ scale: 0.92, opacity: 0, y: 16 }}
-                transition={{ type: 'spring', damping: 26, stiffness: 280 }}
-                className="w-full max-w-[420px] bg-white rounded-[22px] shadow-[0_20px_60px_-12px_rgba(0,0,0,0.15)] border border-slate-100 overflow-hidden"
+                initial={{ scale: 0.94, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.94, opacity: 0 }}
+                transition={{ duration: 0.2, ease: 'easeOut' }}
+                className="w-full max-w-[340px] bg-white rounded-[24px] shadow-[0_25px_60px_-12px_rgba(0,0,0,0.2)]"
               >
-                {/* HEADER: Logo + Timer + Close */}
-                <div className="flex items-center justify-between px-7 pt-6 pb-0">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-9 h-9 rounded-[10px] bg-gradient-to-br from-emerald-800 to-emerald-600 flex items-center justify-center text-white text-[7px] font-black tracking-tight shadow-sm">CV</div>
-                    <span className="font-display font-bold text-[15px] text-[#1F2937] tracking-tight">CredVale</span>
+                {/* Header */}
+                <div className="flex items-center justify-between px-5 pt-5 pb-0">
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-lg bg-emerald-700 flex items-center justify-center text-white text-[6px] font-black">CV</div>
+                    <span className="font-display font-bold text-sm text-[#1F2937]">CredVale</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-[11px] font-semibold text-[#6B7280] bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-100">{securityPopupCountdown}s</span>
-                    <button onClick={() => setIsSecurityPopupOpen(false)} className="w-7 h-7 flex items-center justify-center rounded-full bg-slate-50 hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-all duration-200 border border-slate-100"><X className="w-3.5 h-3.5" /></button>
+                    <span className="text-[10px] font-medium text-[#9CA3AF]">{securityPopupCountdown}s</span>
+                    <button onClick={() => setIsSecurityPopupOpen(false)} className="w-6 h-6 flex items-center justify-center rounded-full bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors"><X className="w-3 h-3" /></button>
                   </div>
                 </div>
 
-                {/* CONTENT */}
-                <div className="px-7 pt-5 pb-6 space-y-5">
-                  {/* TITLE */}
-                  <h3 className="font-display font-extrabold text-[22px] text-[#1F2937] leading-tight tracking-tight">
-                    <span role="img" aria-label="atencao">⚠️</span> Atenção
-                  </h3>
+                {/* Body */}
+                <div className="px-5 pt-4 pb-5 space-y-4">
+                  {/* Warning box */}
+                  <div className="bg-[#FFF8E8] rounded-xl px-3.5 py-3 flex items-start gap-2.5">
+                    <span className="text-sm flex-shrink-0 mt-0.5">⚠️</span>
+                    <p className="text-[13px] leading-relaxed text-[#92400E] font-medium">
+                      A <strong className="text-emerald-600">CredVale</strong> <span className="text-[#DC2626] font-extrabold">NÃO</span> cobra valor antecipado.
+                    </p>
+                  </div>
 
-                  {/* WARNING BOX */}
-                  <div className="bg-[#FFF8E8] border border-[#F4D06F]/60 rounded-[14px] p-4 flex items-start gap-3">
-                    <span className="text-lg flex-shrink-0 mt-0.5">⚠️</span>
-                    <div className="text-[14px] leading-relaxed text-[#92400E] font-medium">
-                      A <strong className="text-emerald-600">CredVale</strong> <span className="text-[#DC2626] font-extrabold">NÃO</span> cobra qualquer valor antecipado.
+                  {/* Items compactos */}
+                  <div className="space-y-2.5">
+                    <div className="flex items-start gap-2.5">
+                      <span className="text-sm flex-shrink-0">💳</span>
+                      <p className="text-[13px] text-[#4B5563] leading-snug">Não solicitamos PIX, depósitos ou transferências.</p>
+                    </div>
+                    <div className="flex items-start gap-2.5">
+                      <span className="text-sm flex-shrink-0">🔒</span>
+                      <p className="text-[13px] text-[#4B5563] leading-snug">Todo processo é gratuito — análise, aprovação e emissão do cartão.</p>
+                    </div>
+                    <div className="flex items-start gap-2.5">
+                      <span className="text-sm flex-shrink-0">👤</span>
+                      <p className="text-[13px] text-[#4B5563] leading-snug">Recebeu uma cobrança? Desconsidere e <strong className="text-emerald-600 font-semibold">fale conosco</strong>.</p>
                     </div>
                   </div>
 
-                  {/* INFO BLOCKS */}
-                  <div className="space-y-3">
-                    <div className="flex items-start gap-3 pb-3 border-b border-slate-50">
-                      <span className="text-base flex-shrink-0 mt-0.5">💳</span>
-                      <div>
-                        <p className="text-[15px] font-semibold text-[#1F2937]">Não solicitamos PIX, depósitos ou transferências.</p>
-                        <p className="text-[13px] text-[#6B7280] mt-0.5">Nenhum pagamento antecipado é necessário para aprovação.</p>
-                      </div>
+                  {/* Segurança + Botão */}
+                  <div className="pt-3 border-t border-slate-100 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" className="flex-shrink-0"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                      <span className="text-[11px] text-[#065F46] font-medium">Sua segurança é nossa prioridade.</span>
                     </div>
-                    <div className="flex items-start gap-3 pb-3 border-b border-slate-50">
-                      <span className="text-base flex-shrink-0 mt-0.5">🔒</span>
-                      <div>
-                        <p className="text-[15px] font-semibold text-[#1F2937]">Não cobramos para análise, liberação de limite ou emissão de cartão.</p>
-                        <p className="text-[13px] text-[#6B7280] mt-0.5">Todo o processo é gratuito até a contratação.</p>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <span className="text-base flex-shrink-0 mt-0.5">👤</span>
-                      <div>
-                        <p className="text-[15px] font-semibold text-[#1F2937]">Recebeu uma cobrança em nosso nome?</p>
-                        <p className="text-[13px] text-[#6B7280] mt-0.5">Desconsidere imediatamente e <strong className="text-emerald-600 font-semibold">fale conosco</strong>.</p>
-                      </div>
-                    </div>
+                    <button
+                      onClick={() => setIsSecurityPopupOpen(false)}
+                      className="w-full h-[48px] bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white font-bold text-sm rounded-[14px] transition-all active:scale-[0.97] duration-150 flex items-center justify-center gap-1.5"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                      Entendi
+                    </button>
                   </div>
-
-                  {/* SECURITY FOOTER */}
-                  <div className="bg-emerald-50/70 border border-emerald-100 rounded-[14px] p-4 flex items-center gap-3">
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" className="flex-shrink-0">
-                      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-                    </svg>
-                    <div>
-                      <p className="text-[13px] font-bold text-[#065F46]">Sua segurança é nossa prioridade.</p>
-                      <p className="text-[12px] text-[#059669]/70">Credibilidade, transparência e respeito com você.</p>
-                    </div>
-                  </div>
-
-                  {/* BUTTON */}
-                  <button
-                    onClick={() => setIsSecurityPopupOpen(false)}
-                    className="w-full h-[52px] bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white font-bold text-[15px] rounded-[16px] transition-all active:scale-[0.97] duration-200 shadow-[0_4px_14px_rgba(5,150,105,0.25)] hover:shadow-[0_6px_20px_rgba(5,150,105,0.35)] flex items-center justify-center gap-2"
-                  >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                    Entendi
-                  </button>
                 </div>
               </motion.div>
             </div>
