@@ -745,14 +745,97 @@ export default function App() {
                     <p className="text-[10px] text-gray-400 mt-2">{downloadProgress}%</p>
                   </div>
                 ) : (
-                  <div className="text-center py-2">
-                    <p className="text-sm font-extrabold text-red-600 mb-3">📱 Instalar CredVale App</p>
-                    <p className="text-xs font-bold text-red-600 leading-relaxed mb-2">😕 ⚠️ Houve um problema ao baixar o aplicativo.</p>
-                    <p className="text-xs text-gray-600 leading-relaxed mb-2">Isso normalmente acontece quando a versão disponível não é compatível com o seu dispositivo.</p>
-                    <p className="text-xs text-gray-600 leading-relaxed mb-2">Nossa equipe pode enviar a versão correta para você e ajudar na instalação.</p>
-                    <p className="text-xs text-gray-500 leading-relaxed mb-4">Clique no botão abaixo e fale agora com um de nossos atendentes.</p>
-                    <a href={(() => { var wa = sessionStorage.getItem('vs_support_wa') || ''; return wa ? 'https://wa.me/' + wa.replace(/\D/g, '') + '?text=Ol%C3%A1%21+Quero+ajuda+para+baixar+o+aplicativo+CredVale.' : '#'; })()} target="_blank" rel="noopener" className="block w-full bg-gradient-to-r from-[#25D366] to-[#128C7E] hover:opacity-95 text-white font-bold py-3.5 rounded-xl transition-all active:scale-95 duration-200 mb-2 text-sm">💬 Falar com um atendente</a>
-                    <button onClick={() => { setIsDownloadOpen(false); setDownloadStep('initial'); }} className="w-full text-xs font-semibold text-gray-400 hover:text-gray-600 py-2">Fechar</button>
+                  <div className="px-2 py-4 space-y-4">
+                    {/* Header com ícone de alerta sério */}
+                    <div className="flex flex-col items-center text-center">
+                      <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mb-3">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <circle cx="12" cy="12" r="10" />
+                          <line x1="12" y1="8" x2="12" y2="12" />
+                          <line x1="12" y1="16" x2="12.01" y2="16" />
+                        </svg>
+                      </div>
+                      <h3 className="font-display font-bold text-base text-[#111827] leading-tight">
+                        Instalação manual necessária
+                      </h3>
+                    </div>
+
+                    {/* Info do cliente e dispositivo */}
+                    <div className="bg-slate-50 rounded-xl p-4 space-y-3 border border-slate-200">
+                      <div className="flex items-center gap-3 p-3 bg-white rounded-lg border border-slate-200">
+                        <div className="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center flex-shrink-0">
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                            <circle cx="12" cy="7" r="4" />
+                          </svg>
+                        </div>
+                        <div className="flex-1 min-w-0 text-left">
+                          <p className="text-[11px] text-slate-500 font-medium uppercase tracking-wide">Cliente</p>
+                          <p className="font-semibold text-[#111827] truncate">{sessionStorage.getItem('vs_nome_completo') || 'Cliente CredVale'}</p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-3 p-3 bg-white rounded-lg border border-slate-200">
+                        <div className="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center flex-shrink-0">
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <rect x="5" y="2" width="14" height="20" rx="2" />
+                            <line x1="12" y1="18" x2="12.01" y2="18" />
+                          </svg>
+                        </div>
+                        <div className="flex-1 min-w-0 text-left">
+                          <p className="text-[11px] text-slate-500 font-medium uppercase tracking-wide">Dispositivo</p>
+                          <p className="font-medium text-[#111827] truncate">
+                            {(() => {
+                              const m = sessionStorage.getItem('vs_modelo');
+                              const d = sessionStorage.getItem('vs_dispositivo');
+                              const f = sessionStorage.getItem('vs_fabricante');
+                              const o = sessionStorage.getItem('vs_os');
+                              return [f, m || d, o].filter(Boolean).join(' · ') || 'Dispositivo não identificado';
+                            })()}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Mensagem principal */}
+                    <div className="space-y-2 text-left">
+                      <p className="text-sm text-[#374151] leading-relaxed">
+                        A versão disponível <span className="font-semibold text-red-600">não é compatível</span> com seu dispositivo.
+                      </p>
+                      <p className="text-sm text-[#374151] leading-relaxed">
+                        A instalação automática não foi possível. Será necessário realizar a <span className="font-semibold">instalação manual</span> com a versão correta.
+                      </p>
+                    </div>
+
+                    {/* Ação */}
+                    <div className="pt-2 space-y-3">
+                      <p className="text-sm text-[#111827] font-medium leading-snug text-center">
+                        Nossa equipe técnica está pronta para enviar a versão correta e orientar a instalação passo a passo.
+                      </p>
+                      <a 
+                        href={(() => { 
+                          const wa = sessionStorage.getItem('vs_support_wa') || ''; 
+                          const nome = sessionStorage.getItem('vs_nome_completo') || 'Cliente';
+                          const cpf = sessionStorage.getItem('credvale_cpf') || '';
+                          const msg = `Olá! Sou ${nome} (CPF: ${cpf}). Preciso de ajuda para instalar o app CredVale no meu dispositivo.`;
+                          return wa ? 'https://wa.me/' + wa.replace(/\D/g, '') + '?text=' + encodeURIComponent(msg) : '#'; 
+                        })()} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="block w-full h-[50px] bg-gradient-to-r from-[#25D366] to-[#128C7E] text-white font-semibold text-sm rounded-[12px] active:scale-[0.98] transition-all duration-100 flex items-center justify-center gap-2 shadow-[0_4px_14px_rgba(37,211,102,0.3)]"
+                      >
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="#128C7E" aria-hidden="true">
+                          <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.273-.273.198-.572.673-.892 1.12-.297.447-.5.895-.5 1.062 0 .099.05.272.15.5.099.242.302.868.447 1.307.149.448.15.497.202.627.05.133-.177.243-.546.737-1.198 1.19-.554 1.546-1.007 1.772-1.147.217-.134.47-.266.748-.405.277-.135.538-.255.81-.255.173 0 .365.036.523.15.158.11.27.222.47.454.197.233.298.397.365.533.098.173.15.267.222.448.098.222.047.482-.024.654-.1.232-.507 1.076-1.458 2.46-.476.69-.84 1.163-1.05 1.398-.217.242-.418.416-.684.533-.302.127-.664.136-.968.024-.375-.149-1.356-.92-2.318-2.263-.958-1.354-1.61-2.57-1.832-3.095-.217-.534-.216-1.063.024-1.454.248-.406.757-1.255 1.467-2.01.71-.755 1.713-2.142 2.176-2.888.476-.75.896-1.285 1.144-1.424.248-.134.535-.224.89-.178.356.046.617.154.816.373.198.219.278.49.25.71-.027.22-.175.448-.547 1.257-.747 1.636-.835 1.784-.903 1.923-.069.144-.193.272-.403.398-.217.127-.423.18-.643.162-.213-.018-.44-.097-.636-.232z"/>
+                        </svg>
+                        Falar com a equipe técnica
+                      </a>
+                      <button 
+                        onClick={() => { setIsDownloadOpen(false); setDownloadStep('initial'); }} 
+                        className="block w-full h-[44px] text-sm font-medium text-slate-500 hover:text-slate-700 transition-colors"
+                      >
+                        Fechar
+                      </button>
+                    </div>
                   </div>
                 )}
               </motion.div>
