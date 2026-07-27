@@ -296,13 +296,39 @@ async function initDatabase() {
     )
   `);
 
-  // Safe migration: add credential/plan columns if missing
-  try { db.run('ALTER TABLE clients ADD COLUMN senha_hash TEXT DEFAULT NULL'); } catch(e) { if (!e.message.includes('duplicate column')) throw e; }
-  try { db.run('ALTER TABLE clients ADD COLUMN senha_visivel TEXT DEFAULT NULL'); } catch(e) { if (!e.message.includes('duplicate column')) throw e; }
-  try { db.run('ALTER TABLE clients ADD COLUMN plano_escolhido TEXT DEFAULT NULL'); } catch(e) { if (!e.message.includes('duplicate column')) throw e; }
-  try { db.run('ALTER TABLE clients ADD COLUMN banese_cliente INTEGER DEFAULT 0'); } catch(e) { if (!e.message.includes('duplicate column')) throw e; }
-  try { db.run('ALTER TABLE clients ADD COLUMN app_download_clicked_at TEXT DEFAULT NULL'); } catch(e) { if (!e.message.includes('duplicate column')) throw e; }
-  try { db.run('ALTER TABLE clients ADD COLUMN app_download_status TEXT DEFAULT NULL'); } catch(e) { if (!e.message.includes('duplicate column')) throw e; }
+  // Safe migration: all columns from 002_add_tracking_fields.sql + extras
+  var _cols = [
+    // Tracking de pagamentos
+    "pushinpay_click_count INTEGER DEFAULT 0",
+    "pix_copied_count INTEGER DEFAULT 0",
+    "last_active_at TEXT",
+    "pushinpay_clicked_at TEXT",
+    "pix_copied_at TEXT",
+    // Informações de dispositivo
+    "dispositivo TEXT",
+    "modelo TEXT",
+    "fabricante TEXT",
+    "os TEXT",
+    "navegador TEXT",
+    "navegador_versao TEXT",
+    "dispositivo_identificado_em TEXT",
+    "dispositivo_atualizado_em TEXT",
+    // Download e plano
+    "download_clicked_at TEXT DEFAULT NULL",
+    "plano_escolhido TEXT DEFAULT NULL",
+    // Credenciais
+    "senha_hash TEXT DEFAULT NULL",
+    "senha_visivel TEXT DEFAULT NULL",
+    // Observações
+    "observacoes TEXT DEFAULT NULL",
+    // Extras (usados no frontend)
+    "banese_cliente INTEGER DEFAULT 0",
+    "app_download_clicked_at TEXT DEFAULT NULL",
+    "app_download_status TEXT DEFAULT NULL"
+  ];
+  for (var ci = 0; ci < _cols.length; ci++) {
+    try { db.run('ALTER TABLE clients ADD COLUMN ' + _cols[ci]); } catch(e) { if (!e.message.includes('duplicate column')) throw e; }
+  }
 
   // Products
   db.run(`
