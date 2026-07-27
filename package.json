@@ -7,7 +7,6 @@
     "dev": "vite --port=3000 --host=0.0.0.0",
     "build": "vite build",
     "deploy": "node deploy.cjs",
-    "imagens": "node scripts/gerenciar-imagens.mjs",
     "postbuild": "node -e \"const fs=require('fs'); const path=require('path'); const d='dist/'; const srcAssets='assets/'; const distAssets=d+'assets/'; if(!fs.existsSync(distAssets))fs.mkdirSync(distAssets,{recursive:true}); ['cadastro.html','cadastro.js','cadastro.css','cadastro-chat.css','app.html','admin.html','cliente.html','styles.css'].forEach(f=>{try{fs.cpSync(f,d+f,{force:true})}catch(e){}}); ['frontend','admin-panel'].forEach(dir=>{try{fs.cpSync(dir,d+dir,{recursive:true,force:true})}catch(e){}}); fs.readdirSync(srcAssets).forEach(f=>{try{fs.cpSync(srcAssets+f,distAssets+f,{recursive:true,force:true})}catch(e){}}); fs.readdirSync(distAssets).forEach(f=>{try{fs.cpSync(distAssets+f,srcAssets+f,{recursive:true,force:true})}catch(e){}}); let h=fs.readFileSync(d+'index.html','utf8'); h=h.replace(/\\/assets\\//g,'/assets/'); fs.writeFileSync(d+'index.html',h); console.log('Build copiado para raiz');\""
   },
   "dependencies": {
