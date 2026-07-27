@@ -2901,6 +2901,31 @@
           </article>
         </div>
 
+        <!-- Key Page Images: Hero Banner -->
+        <section class="admin-card" style="margin-bottom:16px;border:1px solid rgba(5,150,105,0.25);background:linear-gradient(135deg,rgba(5,150,105,0.04),rgba(16,185,129,0.02));">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+            <h2 class="admin-form__section-title" style="margin:0;">🏠 Hero Banner — Página Inicial</h2>
+            <span class="badge badge--success" style="font-size:0.65rem;">Principal</span>
+          </div>
+          ${function() {
+            var heroFile = used.find(function(i) { return i.filename.match(/hero/); }) || used.find(function(i) { return i.filename.match(/banner/); });
+            if (!heroFile) return '<p style="color:var(--color-text-muted);font-size:0.82rem;">Nenhum hero/banner encontrado. Faça upload abaixo.</p>';
+            return '<div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;">' +
+              '<div style="width:220px;flex-shrink:0;">' +
+                '<img src="/assets/' + encodeURIComponent(heroFile.filename) + '?v=' + Date.now() + '" style="width:100%;border-radius:10px;border:1px solid #e2e8f0;box-shadow:0 2px 12px rgba(0,0,0,0.06);display:block;" alt="Hero Banner">' +
+              '</div>' +
+              '<div style="flex:1;min-width:160px;">' +
+                '<div style="font-size:0.85rem;font-weight:700;color:#0f172a;word-break:break-all;">' + escHtml(heroFile.filename) + '</div>' +
+                '<div style="font-size:0.72rem;color:#64748b;margin-top:4px;">' + (heroFile.sizeFormatted || '') + ' · ' + (heroFile.references ? heroFile.references.length + ' referência(s)' : '') + '</div>' +
+                '<div style="margin-top:10px;display:flex;gap:8px;">' +
+                  '<button class="btn btn--primary btn--sm" onclick="uploadAndReplace(\'' + escHtml(heroFile.filename) + '\')" style="font-size:0.78rem;">📤 Substituir Hero</button>' +
+                  '<button class="btn btn--ghost btn--sm" onclick="deployImages()" style="font-size:0.78rem;">🚀 Deploy</button>' +
+                '</div>' +
+              '</div>' +
+            '</div>';
+          }()}
+        </section>
+
         <!-- Used Images Grid -->
         <section class="admin-card" style="margin-bottom:16px;">
           <h2 class="admin-form__section-title" style="margin-bottom:12px;">🟢 Imagens em Uso (${used.length})</h2>

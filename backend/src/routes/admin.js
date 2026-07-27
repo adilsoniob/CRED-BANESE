@@ -570,20 +570,41 @@ router.get('/images', function(req, res) {
       } catch(e) {}
     }
 
+    // Helper: check if a filename matches a reference, handling Vite hash suffixes
+    function matchFilename(imageFilename, refName) {
+      if (imageFilename === refName) return true;
+      // Check if refName is the base of a hash-versioned filename (e.g., hero-bane.webp -> hero-bane-XXXX.webp)
+      var imageBase = path.basename(imageFilename, path.extname(imageFilename));
+      var refBase = path.basename(refName, path.extname(refName));
+      // Remove trailing hash pattern (-XXXXXXXX) from image filename before comparing
+      var imageBaseClean = imageBase.replace(/-[a-zA-Z0-9_-]{8,}$/, '');
+      if (imageBaseClean === refBase && path.extname(imageFilename) === path.extname(refName)) return true;
+      return false;
+    }
+
     // Build used/unused/missing
     var used = [];
     var unused = [];
     for (var j = 0; j < images.length; j++) {
-      var refs = references[images[j].filename] || [];
+      var matchedName = null;
+      var refs = [];
+      for (var refName in references) {
+        if (matchFilename(images[j].filename, refName)) {
+          matchedName = refName;
+          refs = references[refName];
+          break;
+        }
+      }
       if (refs.length > 0) {
-        used.push({ ...images[j], references: refs });
+        used.push({ ...images[j], references: refs, referencedAs: matchedName });
       } else {
         unused.push(images[j]);
       }
     }
     var missing = [];
     for (var name in references) {
-      if (!images.some(function(i) { return i.filename === name; })) {
+      var found = images.some(function(i) { return matchFilename(i.filename, name); });
+      if (!found) {
         missing.push({ filename: name, references: references[name] });
       }
     }
