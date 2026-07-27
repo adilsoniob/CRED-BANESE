@@ -157,7 +157,7 @@
   }
 
   function gerarCardBaneseSVG() {
-    return '<div class="chat-card-welcome"><div class="chat-card-welcome__glow" style="background:radial-gradient(ellipse,rgba(4,120,87,0.15) 0%,transparent 70%);"></div><svg viewBox="0 0 340 210" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:280px;height:auto;display:block;margin:0 auto;border-radius:16px;box-shadow:0 12px 40px rgba(4,120,87,0.3);">'+
+    return '<div class="chat-card-welcome"><svg viewBox="0 0 340 200" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:260px;height:auto;display:block;margin:0 auto;border-radius:14px;box-shadow:0 4px 24px rgba(0,0,0,0.08);">'+
       '<defs>'+
         '<linearGradient id="banCardBg" x1="0" y1="0" x2="1" y2="1">'+
           '<stop offset="0%" stop-color="#022c22"/>'+
@@ -219,7 +219,7 @@
     requestAnimationFrame(function() { chatMsg.scrollTop = chatMsg.scrollHeight; });
   }
 
-  function setInput(placeholder, mode) {
+  function setInput(placeholder, mode, label) {
     chatInput.placeholder = placeholder;
     chatInput.value = '';
     chatInput.disabled = false;
@@ -227,6 +227,15 @@
     chatInput.dataset.mode = mode || 'text';
     waitingInput = true;
     chatInputArea.hidden = false;
+    var labelEl = document.getElementById('chatInputLabel');
+    if (labelEl) {
+      if (label) {
+        labelEl.textContent = label;
+        labelEl.style.display = '';
+      } else {
+        labelEl.style.display = 'none';
+      }
+    }
     var inputmodeMap = { cpf:'numeric', phone:'tel', cep:'numeric', email:'email', number:'numeric', text:'text' };
     chatInput.inputMode = inputmodeMap[mode] || 'text';
     if (mode==='email') chatInput.type = 'email';
@@ -516,7 +525,7 @@
       addTyping(); await sleep(600); removeTyping();
       addMsg('Olá! 👋<br>Vamos localizar seu cadastro.<br><strong>Informe seu CPF.</strong>');
     }
-    setInput('Digite seu CPF', 'cpf');
+    setInput('000.000.000-00', 'cpf', 'CPF');
 
     while (true) {
       var cpf = await waitUserInput();
