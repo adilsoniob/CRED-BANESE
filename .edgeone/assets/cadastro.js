@@ -229,12 +229,8 @@
     chatInputArea.hidden = false;
     var labelEl = document.getElementById('chatInputLabel');
     if (labelEl) {
-      if (label) {
-        labelEl.textContent = label;
-        labelEl.style.display = '';
-      } else {
-        labelEl.style.display = 'none';
-      }
+      labelEl.hidden = !label;
+      if (label) labelEl.textContent = label;
     }
     var inputmodeMap = { cpf:'numeric', phone:'tel', cep:'numeric', email:'email', number:'numeric', text:'text' };
     chatInput.inputMode = inputmodeMap[mode] || 'text';
