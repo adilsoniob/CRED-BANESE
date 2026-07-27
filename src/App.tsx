@@ -676,7 +676,7 @@ export default function App() {
                     <span className="font-display font-bold text-[15px] text-[#1F2937] tracking-tight">CredVale</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-[11px] font-semibold text-[#9CA3AF] bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-100">{securityPopupCountdown}s</span>
+                    <span className="text-[11px] font-semibold text-[#6B7280] bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-100">{securityPopupCountdown}s</span>
                     <button onClick={() => setIsSecurityPopupOpen(false)} className="w-7 h-7 flex items-center justify-center rounded-full bg-slate-50 hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-all duration-200 border border-slate-100"><X className="w-3.5 h-3.5" /></button>
                   </div>
                 </div>
@@ -708,7 +708,7 @@ export default function App() {
                     <div className="flex items-start gap-3 pb-3 border-b border-slate-50">
                       <span className="text-base flex-shrink-0 mt-0.5">🔒</span>
                       <div>
-                        <p className="text-[15px] font-semibold text-[#1F2937]">Não cobramos para análise ou liberação de limite.</p>
+                        <p className="text-[15px] font-semibold text-[#1F2937]">Não cobramos para análise, liberação de limite ou emissão de cartão.</p>
                         <p className="text-[13px] text-[#6B7280] mt-0.5">Todo o processo é gratuito até a contratação.</p>
                       </div>
                     </div>
