@@ -467,23 +467,16 @@
       window._iniciarChat();
     } else {
       addMsg(
-        '<div class="chat-welcome-v2" style="gap:6px;">'+
+        '<div class="chat-welcome-v2" style="gap:8px;">'+
           gerarCardBaneseSVG()+
-          '<div class="chat-welcome-v2__title" style="color:#1F2937;font-size:1.3rem;font-weight:700;line-height:1.2;">Vamos descobrir seu limite.</div>'+
-          '<div class="chat-welcome-v2__desc" style="color:#6B7280;font-size:0.82rem;line-height:1.45;margin:0;">'+
-            'Leva menos de 2 minutos. Informe seu CPF para consultar seu limite e ativar seus benefícios exclusivos.'+
+          '<div class="chat-welcome-v2__title" style="color:#1F2937;font-size:1.35rem;font-weight:700;line-height:1.2;">Vamos começar</div>'+
+          '<div class="chat-welcome-v2__desc" style="color:#4B5563;font-size:0.82rem;line-height:1.55;margin:0;">'+
+            'Você está a um passo de aproveitar os benefícios exclusivos da parceria Banese + CredVale por apenas <strong style="color:#059669;">R$ 0,99 por mês</strong>.'+
           '</div>'+
-          '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:2px;justify-content:center;">'+
-            '<span style="font-size:0.7rem;color:#4B5563;background:#F9FAFB;padding:2px 8px;border-radius:999px;border:1px solid #E5E7EB;">✓ Consulta rápida</span>'+
-            '<span style="font-size:0.7rem;color:#4B5563;background:#F9FAFB;padding:2px 8px;border-radius:999px;border:1px solid #E5E7EB;">✓ Até 75% OFF em farmácias</span>'+
-            '<span style="font-size:0.7rem;color:#4B5563;background:#F9FAFB;padding:2px 8px;border-radius:999px;border:1px solid #E5E7EB;">✓ Cadastro seguro</span>'+
-          '</div>'+
-          '<div class="chat-welcome-v2__badge" style="margin-top:4px;background:#F3F4F6;color:#9CA3AF;font-size:0.65rem;font-weight:500;border:1px solid #E5E7EB;padding:3px 10px;">'+
-            '🔒 Ambiente protegido'+
-          '</div>'+
+          '<div class="chat-welcome-v2__desc" style="color:#9CA3AF;font-size:0.75rem;margin:0;">O cadastro é rápido e leva cerca de 2 minutos.</div>'+
         '</div>'
       );
-      addMsg('Olá! Informe seu CPF para consultar seu limite.');
+      addMsg('<div style="margin-bottom:4px;font-size:0.95rem;">Olá! 😊</div><div style="font-size:0.88rem;color:#4B5563;">Vou acompanhar seu cadastro. Para começar, basta informar seu CPF no campo abaixo.</div>');
       etapaCPF(true);
     }
   }
