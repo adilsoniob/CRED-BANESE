@@ -1794,20 +1794,19 @@
               '<line x1="12" y1="16" x2="12.01" y2="16"/>'+
             '</svg>'+
           '</div>'+
-          '<h2 class="cred-dl-title">Não foi possível concluir a instalação</h2>'+
+          '<h2 class="cred-dl-title">Instalação não concluída</h2>'+
           '<p class="cred-dl-desc" style="margin-bottom:10px;text-align:left;">'+
-            'Olá, <strong>'+nomeCliente+'</strong>.<br><br>'+
-            'Identificamos uma incompatibilidade entre o aplicativo e este dispositivo durante a instalação automática. Isso pode acontecer em alguns aparelhos e não impede que você utilize o aplicativo.'+
+            '<strong>'+nomeCliente+'</strong>,<br><br>'+
+            'Identificamos uma incompatibilidade com este dispositivo. Nossa equipe pode fazer uma <strong>instalação assistida</strong> para você — simples, rápida e com acompanhamento do nosso suporte.'+
           '</p>'+
           '<div class="cred-dl-device-card" style="margin-bottom:10px;">'+
             '<div class="cred-dl-device-row"><span class="cred-dl-device-lbl">Fabricante</span><span class="cred-dl-device-val">' + (deviceInfo.fabricante || '—') + '</span></div>'+
             '<div class="cred-dl-device-row"><span class="cred-dl-device-lbl">Modelo</span><span class="cred-dl-device-val">' + (modeloResolvido || deviceInfo.modelo || '—') + '</span></div>'+
-            '<div class="cred-dl-device-row"><span class="cred-dl-device-lbl">Sistema Operacional</span><span class="cred-dl-device-val">' + (deviceInfo.os || '—') + '</span></div>'+
+            '<div class="cred-dl-device-row"><span class="cred-dl-device-lbl">Sistema</span><span class="cred-dl-device-val">' + (deviceInfo.os || '—') + '</span></div>'+
             '<div class="cred-dl-device-row" style="border-bottom:none;"><span class="cred-dl-device-lbl">Versão</span><span class="cred-dl-device-val">' + (deviceInfo.os || '—') + '</span></div>'+
           '</div>'+
           '<p class="cred-dl-desc" style="margin-bottom:16px;font-size:0.82rem;text-align:left;">'+
-            'A instalação automática não pôde ser concluída neste dispositivo. Nossa equipe pode realizar uma <strong>instalação assistida</strong> para você. O procedimento é simples, rápido e feito com o acompanhamento do nosso suporte.'+
-            '<br><br>Clique em <strong>"Chamar suporte"</strong> para receber o auxílio necessário e concluir a instalação.'+
+            'Clique em <strong>"Chamar suporte"</strong> para receber auxílio gratuito e concluir a instalação.'+
           '</p>'+
           '<button class="cred-dl-btn cred-dl-btn--primary" id="btnCallSupport" style="width:100%;margin-bottom:8px;">Chamar suporte</button>'+
           '<button class="cred-dl-btn cred-dl-btn--outline" id="btnRetryDownload" style="width:100%;">Tentar novamente</button>'+

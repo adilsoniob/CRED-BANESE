@@ -258,7 +258,7 @@ export default function App() {
             {/* Hero Image */}
             <div className="px-4 pt-4">
               <img 
-                src="/assets/hero-bane.webp" 
+                src="/assets/test-novo-hero-1.png" 
                 alt="Banese + CredVale"
                 className="w-full rounded-2xl shadow-md border border-white/10 object-cover"
                 loading="eager"
