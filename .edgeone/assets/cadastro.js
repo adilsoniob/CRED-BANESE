@@ -990,9 +990,9 @@
     var aprovHtml =
       '<div class="banese-modal">'+
         '<div class="banese-modal-header" style="background:linear-gradient(135deg,#022c22,#065F46);">'+
-          '<div class="banese-modal-logo">BANESE</div>'+
-          '<div class="banese-modal-star">&#9733;</div>'+
-          '<div class="banese-modal-logo-sub">CREDVALE</div>'+
+          '<div class="banese-modal-logo" style="color:#fff;">BANESE</div>'+
+          '<div class="banese-modal-star" style="color:rgba(255,255,255,0.4);">&#9733;</div>'+
+          '<div class="banese-modal-logo-sub" style="color:rgba(255,255,255,0.6);">CREDVALE</div>'+
         '</div>'+
         '<div class="banese-modal-body">'+
           '<div style="text-align:center;margin-bottom:10px;">'+
