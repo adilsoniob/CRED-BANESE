@@ -35,6 +35,14 @@
   let chosenPlan = '';
   let quizAnswers = {};
 
+  /* ---- Banese flow ---- */
+  var isBanese = sessionStorage.getItem('credvale_banese') === 'true';
+
+  // Se for Banese, zera os preços (R$0,99)
+  if (isBanese) {
+    __precos = { virtual: 0.99, fisico: 0.99 };
+  }
+
   /* ---- Cache de preços dos produtos (vindo do painel) ---- */
   var __precos = { virtual: 4.99, fisico: 19.99 };
 
@@ -95,6 +103,7 @@
   }
 
   async function carregarPrecos() {
+    if (isBanese) return; // Preços Banese fixos (R$0,99), não sobrescrever
     try {
       var prods = await fetch((window.__API_BASE||'/api')+'/products').then(function(r){ return r.json(); });
       if (prods && prods.forEach) {
@@ -192,6 +201,41 @@
       '<text x="300" y="170" font-family="Arial,sans-serif" font-size="14" font-weight="600" fill="white" text-anchor="end">12/28</text>'+
       '<text x="28" y="185" width="280" height="1" fill="rgba(255,255,255,0.1)"/>'+
       limHtml+
+    '</svg></div>';
+  }
+
+  function gerarCardBaneseSVG() {
+    return '<div class="chat-card-welcome"><div class="chat-card-welcome__glow" style="background:radial-gradient(ellipse,rgba(4,120,87,0.15) 0%,transparent 70%);"></div><svg viewBox="0 0 340 210" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:280px;height:auto;display:block;margin:0 auto;border-radius:16px;box-shadow:0 12px 40px rgba(4,120,87,0.3);">'+
+      '<defs>'+
+        '<linearGradient id="banCardBg" x1="0" y1="0" x2="1" y2="1">'+
+          '<stop offset="0%" stop-color="#022c22"/>'+
+          '<stop offset="35%" stop-color="#064E3B"/>'+
+          '<stop offset="70%" stop-color="#065F46"/>'+
+          '<stop offset="100%" stop-color="#047857"/>'+
+        '</linearGradient>'+
+        '<radialGradient id="banCardShine" cx="30%" cy="20%" r="80%">'+
+          '<stop offset="0%" stop-color="rgba(255,255,255,0.15)"/>'+
+          '<stop offset="100%" stop-color="transparent"/>'+
+        '</radialGradient>'+
+        '<linearGradient id="banChip" x1="0" y1="0" x2="1" y2="1">'+
+          '<stop offset="0%" stop-color="#fef3c7"/>'+
+          '<stop offset="100%" stop-color="#d97706"/>'+
+        '</linearGradient>'+
+      '</defs>'+
+      '<rect width="340" height="210" rx="16" fill="url(#banCardBg)"/>'+
+      '<rect width="340" height="210" rx="16" fill="url(#banCardShine)"/>'+
+      '<circle cx="260" cy="25" r="140" fill="rgba(255,255,255,0.03)"/>'+
+      '<text x="28" y="40" font-family="Space Grotesk,Arial,sans-serif" font-size="12" font-weight="900" fill="rgba(255,255,255,0.7)" letter-spacing="3">BANESE</text>'+
+      '<text x="170" y="40" font-family="Space Grotesk,Arial,sans-serif" font-size="10" font-weight="800" fill="rgba(255,255,255,0.3)" text-anchor="middle">&#9733;</text>'+
+      '<text x="200" y="40" font-family="Space Grotesk,Arial,sans-serif" font-size="10" font-weight="800" fill="rgba(255,255,255,0.5)" letter-spacing="2">CREDVALE</text>'+
+      '<rect x="28" y="68" width="44" height="32" rx="5" fill="url(#banChip)" opacity="0.9"/>'+
+      '<rect x="31" y="71" width="38" height="26" rx="3" fill="rgba(255,255,255,0.06)"/>'+
+      '<text x="28" y="138" font-family="Courier New,monospace" font-size="18" font-weight="700" fill="#ffffff" letter-spacing="3.5" opacity="0.95">&#9733;&#9733;&#9733;&#9733;  &#9733;&#9733;&#9733;&#9733;  &#9733;&#9733;&#9733;&#9733;  4589</text>'+
+      '<text x="28" y="168" font-family="Arial,sans-serif" font-size="8" fill="rgba(255,255,255,0.35)" letter-spacing="1">TITULAR</text>'+
+      '<text x="28" y="188" font-family="Arial,sans-serif" font-size="15" font-weight="700" fill="#ffffff">CLIENTE BANESE</text>'+
+      '<text x="312" y="168" font-family="Arial,sans-serif" font-size="8" fill="rgba(255,255,255,0.35)" text-anchor="end" letter-spacing="1">VALIDADE</text>'+
+      '<text x="312" y="188" font-family="Arial,sans-serif" font-size="13" font-weight="600" fill="#ffffff" text-anchor="end">12/30</text>'+
+      '<text x="28" y="203" font-family="Arial,sans-serif" font-size="6.5" fill="rgba(255,255,255,0.2)" letter-spacing="0.8">Cartao emitido sob parceria BANESE &#183; CREDVALE</text>'+
     '</svg></div>';
   }
 
@@ -501,10 +545,34 @@
     hideInput();
     await sleep(400);
 
+    // Limpa a flag Banese do sessionStorage após usar
+    var baneseDetected = isBanese;
+    try { sessionStorage.removeItem('credvale_banese'); } catch(e) {}
+
     var savedCPF = sessionStorage.getItem('credvale_cpf');
     var savedName = sessionStorage.getItem('credvale_name');
 
-    if (savedCPF && savedName) {
+    if (baneseDetected) {
+      // Fluxo Banese Premium
+      addMsg(
+        '<div class="chat-welcome-v2">'+
+          gerarCardBaneseSVG()+
+          '<div class="chat-welcome-v2__title" style="background:linear-gradient(135deg,#047857,#10B981);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">💚 Banese + CredVale</div>'+
+          '<div class="chat-welcome-v2__desc">'+
+            'Cliente Banese, você tem <strong>6 meses de isenção</strong> e depois apenas <strong>R$ 0,99/mês</strong>!<br>'+
+            'Garanta <strong>até 75% de desconto</strong> em medicamentos.'+
+          '</div>'+
+          '<div style="display:flex;gap:6px;margin-top:4px;flex-wrap:wrap;justify-content:center;">'+
+            '<span style="background:rgba(4,120,87,0.1);border:1px solid rgba(4,120,87,0.2);color:#047857;padding:4px 12px;border-radius:999px;font-size:0.68rem;font-weight:700;">🎁 6 meses grátis</span>'+
+            '<span style="background:rgba(4,120,87,0.1);border:1px solid rgba(4,120,87,0.2);color:#047857;padding:4px 12px;border-radius:999px;font-size:0.68rem;font-weight:700;">💰 R$ 0,99/mês</span>'+
+            '<span style="background:rgba(4,120,87,0.1);border:1px solid rgba(4,120,87,0.2);color:#047857;padding:4px 12px;border-radius:999px;font-size:0.68rem;font-weight:700;">🏥 75% OFF</span>'+
+          '</div>'+
+          '<div class="chat-welcome-v2__badge" style="margin-top:6px;background:rgba(4,120,87,0.12);color:#047857;">⏱ 2 minutos · exclusivo Banese</div>'+
+        '</div>'
+      );
+      addMsg('<strong>Bem-vindo, cliente Banese!</strong> 🎉<br>Informe seu <strong>CPF</strong> para começar.');
+      etapaCPF(true);
+    } else if (savedCPF && savedName) {
       window._iniciarChat();
     } else {
       addMsg(
@@ -934,6 +1002,7 @@
       whatsapp: user.whatsapp, email: user.email,
       nome_mae: '', renda: '0', profissao: '', situacao: '',
       limite_aprovado: limite,
+      banese_cliente: isBanese ? 1 : 0,
       dispositivo: sessionStorage.getItem('vs_dispositivo')||'Desktop',
       modelo: sessionStorage.getItem('vs_modelo')||'PC',
       fabricante: sessionStorage.getItem('vs_fabricante')||'',
