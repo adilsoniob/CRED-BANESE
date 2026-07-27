@@ -449,5 +449,202 @@ router.get('/clients/:id/sms-history', (req, res) => {
   }
 });
 
+// ============================================================
+// Image Manager — Scan, Replace & Deploy
+// ============================================================
+
+const fs = require('fs');
+const path = require('path');
+const { execSync } = require('child_process');
+
+const ASSETS_DIR = path.join(__dirname, '..', '..', '..', 'assets');
+const ROOT_DIR = path.join(__dirname, '..', '..', '..');
+const IMAGE_EXTS = ['.png', '.webp', '.jpg', '.jpeg', '.gif', '.svg', '.ico'];
+const EXCLUDE_DIRS = ['node_modules', '.edgeone', 'dist', 'backend', '.git'];
+
+// Helper: recursively find source files
+function walkSourceFiles(dir, relativePath) {
+  var entries = [];
+  try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch(e) { return []; }
+  var files = [];
+  for (var i = 0; i < entries.length; i++) {
+    var entry = entries[i];
+    var fullPath = path.join(dir, entry.name);
+    var relPath = relativePath ? relativePath + '/' + entry.name : entry.name;
+    if (entry.isDirectory()) {
+      if (!EXCLUDE_DIRS.includes(entry.name) && !entry.name.startsWith('.')) {
+        files = files.concat(walkSourceFiles(fullPath, relPath));
+      }
+    } else if (entry.isFile()) {
+      var ext = path.extname(entry.name).toLowerCase();
+      if (['.html', '.js', '.tsx', '.ts', '.css', '.mjs'].includes(ext) &&
+          !/^index-[a-zA-Z0-9_-]+\.(js|css)$/.test(entry.name)) {
+        files.push({ fullPath: fullPath, relPath: relPath });
+      }
+    }
+  }
+  return files;
+}
+
+// Helper: find line number
+function getLineNumber(content, index) {
+  return content.substring(0, index).split('\n').length;
+}
+
+// GET /admin/images — list all images and their source references
+router.get('/images', function(req, res) {
+  try {
+    // Scan assets folder
+    var images = [];
+    if (fs.existsSync(ASSETS_DIR)) {
+      var files = fs.readdirSync(ASSETS_DIR);
+      for (var i = 0; i < files.length; i++) {
+        var ext = path.extname(files[i]).toLowerCase();
+        if (IMAGE_EXTS.includes(ext)) {
+          var stats = fs.statSync(path.join(ASSETS_DIR, files[i]));
+          images.push({
+            filename: files[i],
+            ext: ext,
+            size: stats.size,
+            sizeFormatted: stats.size < 1024 ? stats.size + ' B' : stats.size < 1048576 ? (stats.size / 1024).toFixed(1) + ' KB' : (stats.size / 1048576).toFixed(1) + ' MB',
+            modifiedAt: stats.mtime
+          });
+        }
+      }
+      images.sort(function(a, b) { return a.filename.localeCompare(b.filename); });
+    }
+
+    // Scan source files for references
+    var sourceFiles = walkSourceFiles(ROOT_DIR, '');
+    var imageRegex = /["'`]([^"'`]*\.(png|webp|jpg|jpeg|gif|svg|ico))["'`]/gi;
+    var references = {};
+
+    for (var s = 0; s < sourceFiles.length; s++) {
+      var sf = sourceFiles[s];
+      try {
+        var content = fs.readFileSync(sf.fullPath, 'utf-8');
+        imageRegex.lastIndex = 0;
+        var match;
+        while ((match = imageRegex.exec(content)) !== null) {
+          var imgName = path.basename(match[1].trim());
+          if (!references[imgName]) references[imgName] = [];
+          var exists = references[imgName].some(function(r) { return r.file === sf.relPath && r.lineMatch === match[0]; });
+          if (!exists) {
+            references[imgName].push({
+              file: sf.relPath,
+              lineMatch: match[0],
+              lineNumber: getLineNumber(content, match.index)
+            });
+          }
+        }
+      } catch(e) {}
+    }
+
+    // Build used/unused/missing
+    var used = [];
+    var unused = [];
+    for (var j = 0; j < images.length; j++) {
+      var refs = references[images[j].filename] || [];
+      if (refs.length > 0) {
+        used.push({ ...images[j], references: refs });
+      } else {
+        unused.push(images[j]);
+      }
+    }
+    var missing = [];
+    for (var name in references) {
+      if (!images.some(function(i) { return i.filename === name; })) {
+        missing.push({ filename: name, references: references[name] });
+      }
+    }
+
+    var usedSize = used.reduce(function(s, i) { return s + i.size; }, 0);
+    var unusedSize = unused.reduce(function(s, i) { return s + i.size; }, 0);
+
+    res.json({
+      images: { used: used, unused: unused, missing: missing },
+      summary: {
+        total: images.length,
+        used: used.length,
+        usedSize: usedSize,
+        unused: unused.length,
+        unusedSize: unusedSize,
+        missing: missing.length
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /admin/images/replace — replace old image with new, update refs
+router.post('/images/replace', function(req, res) {
+  try {
+    var { oldFilename, newFilename } = req.body;
+    if (!oldFilename || !newFilename) return res.status(400).json({ error: 'oldFilename e newFilename são obrigatórios' });
+
+    var newPath = path.join(ASSETS_DIR, newFilename);
+    if (!fs.existsSync(newPath)) return res.status(404).json({ error: 'Arquivo ' + newFilename + ' não encontrado em assets/' });
+
+    var ext = path.extname(newFilename).toLowerCase();
+    if (!IMAGE_EXTS.includes(ext)) return res.status(400).json({ error: 'Formato não suportado: ' + ext });
+
+    // Replace in all source files
+    var sourceFiles = walkSourceFiles(ROOT_DIR, '');
+    var updatedFiles = [];
+    var escapedOld = oldFilename.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    var oldRegex = new RegExp(escapedOld, 'g');
+
+    for (var i = 0; i < sourceFiles.length; i++) {
+      var sf = sourceFiles[i];
+      try {
+        var content = fs.readFileSync(sf.fullPath, 'utf-8');
+        if (oldRegex.test(content)) {
+          content = content.replace(oldRegex, newFilename);
+          fs.writeFileSync(sf.fullPath, content, 'utf-8');
+          updatedFiles.push(sf.relPath);
+        }
+      } catch(e) {}
+    }
+
+    res.json({
+      message: oldFilename + ' → ' + newFilename,
+      updatedFiles: updatedFiles,
+      count: updatedFiles.length
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /admin/images/delete — delete an image file
+router.post('/images/delete', function(req, res) {
+  try {
+    var { filename } = req.body;
+    if (!filename) return res.status(400).json({ error: 'filename é obrigatório' });
+
+    var filePath = path.join(ASSETS_DIR, filename);
+    if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'Arquivo não encontrado' });
+
+    fs.unlinkSync(filePath);
+    res.json({ message: filename + ' excluído' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /admin/images/deploy — trigger EdgeOne deploy
+router.post('/images/deploy', function(req, res) {
+  try {
+    var deployScript = path.join(ROOT_DIR, 'deploy.cjs');
+    if (!fs.existsSync(deployScript)) return res.status(404).json({ error: 'deploy.cjs não encontrado' });
+
+    execSync('node deploy.cjs', { cwd: ROOT_DIR, stdio: 'pipe', timeout: 300000 });
+    res.json({ message: 'Deploy executado com sucesso!' });
+  } catch (err) {
+    res.status(500).json({ error: 'Deploy falhou: ' + err.message });
+  }
+});
+
 module.exports = router;
 

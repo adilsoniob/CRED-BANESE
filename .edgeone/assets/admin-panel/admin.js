@@ -262,6 +262,7 @@
       { key: 'online', icon: '🟢', label: 'Online' },
       { key: 'separator-sistema', separator: true, label: 'SISTEMA' },
       { key: 'api', icon: '🔑', label: 'API CPF' },
+      { key: 'imagens', icon: '🖼️', label: 'Imagens' },
       { key: 'notificacoes', icon: '🔔', label: 'Notificações' },
       { key: 'usuarios', icon: '👤', label: 'Usuários' },
       { key: 'logs-sistema', icon: '📋', label: 'Logs Sistema' },
@@ -335,6 +336,7 @@
         case 'fichas':
         case 'online': renderOnline(main); break;
         case 'api': await renderApiPage(main); break;
+        case 'imagens': await renderImagensPage(main); break;
         case 'notificacoes': await renderNotificacoes(main); break;
         case 'usuarios': await renderUsuarios(main); break;
         case 'logs-sistema': await renderLogsSistema(main); break;
@@ -2795,6 +2797,222 @@
   }
 
   document.addEventListener('DOMContentLoaded', startApp);
+
+  // ═══════════════════════════════════════════════════════════
+  // IMAGENS — Gerenciamento visual de imagens
+  // ═══════════════════════════════════════════════════════════
+  async function renderImagensPage(container) {
+    container.innerHTML = '<div class="loading-spinner">Carregando imagens…</div>';
+    try {
+      var data = await API.request('GET', '/admin/images');
+      var summary = data.summary || {};
+      var used = data.images.used || [];
+      var unused = data.images.unused || [];
+      var missing = data.images.missing || [];
+
+      function fmtBytes(bytes) {
+        if (bytes < 1024) return bytes + 'B';
+        if (bytes < 1048576) return (bytes / 1024).toFixed(1) + 'KB';
+        return (bytes / 1048576).toFixed(1) + 'MB';
+      }
+
+      container.innerHTML = `
+        <header class="admin-header">
+          <h1 class="admin-header__title">🖼️ Gerenciamento de Imagens</h1>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn--ghost btn--sm" onclick="refreshImages()" id="refreshImagesBtn">🔄 Atualizar</button>
+            <button class="btn btn--primary btn--sm" onclick="deployImages()" id="deployImagesBtn">🚀 Deploy EdgeOne</button>
+          </div>
+        </header>
+
+        <!-- Summary Cards -->
+        <div class="admin-grid" style="grid-template-columns:repeat(auto-fit,minmax(130px,1fr));margin-bottom:20px;">
+          <article class="admin-card" style="border-left:3px solid #3B82F6;padding:16px;">
+            <div class="admin-card__label">Total</div>
+            <div class="admin-card__value" style="font-size:1.5rem;">${summary.total}</div>
+          </article>
+          <article class="admin-card" style="border-left:3px solid #16C65B;padding:16px;">
+            <div class="admin-card__label">🟢 Em uso</div>
+            <div class="admin-card__value" style="font-size:1.5rem;color:#16C65B;">${summary.used}</div>
+            <div style="font-size:0.7rem;color:var(--color-text-muted);">${fmtBytes(summary.usedSize)}</div>
+          </article>
+          <article class="admin-card" style="border-left:3px solid #EF4444;padding:16px;">
+            <div class="admin-card__label">🔴 Não usadas</div>
+            <div class="admin-card__value" style="font-size:1.5rem;color:#EF4444;">${summary.unused}</div>
+            <div style="font-size:0.7rem;color:var(--color-text-muted);">${fmtBytes(summary.unusedSize)}</div>
+          </article>
+          <article class="admin-card" style="border-left:3px solid #F59E0B;padding:16px;">
+            <div class="admin-card__label">⚠️ Quebradas</div>
+            <div class="admin-card__value" style="font-size:1.5rem;color:#F59E0B;">${missing.length}</div>
+          </article>
+        </div>
+
+        <!-- Used Images Grid -->
+        <section class="admin-card" style="margin-bottom:16px;">
+          <h2 class="admin-form__section-title" style="margin-bottom:12px;">🟢 Imagens em Uso (${used.length})</h2>
+          ${buildImageGrid(used, 'used')}
+        </section>
+
+        <!-- Unused Images -->
+        ${unused.length > 0 ? `
+        <section class="admin-card" style="margin-bottom:16px;">
+          <h2 class="admin-form__section-title" style="margin-bottom:12px;">🔴 Imagens Não Utilizadas (${unused.length})</h2>
+          <div style="display:flex;gap:8px;margin-bottom:12px;">
+            <button class="btn btn--danger btn--sm" onclick="deleteAllUnused()">🗑️ Excluir todas (${unused.length})</button>
+          </div>
+          ${buildImageGrid(unused, 'unused')}
+        </section>
+        ` : ''}
+
+        <!-- Missing References -->
+        ${missing.length > 0 ? `
+        <section class="admin-card">
+          <h2 class="admin-form__section-title" style="margin-bottom:12px;">⚠️ Referências Quebradas (${missing.length})</h2>
+          <div class="admin-table-wrap">
+            <table class="admin-table" style="font-size:0.78rem;">
+              <thead><tr><th>Imagem</th><th>Arquivo</th><th>Linha</th></tr></thead>
+              <tbody>
+                ${missing.map(function(m) {
+                  return m.references.map(function(r) {
+                    return '<tr><td style="color:#EF4444;font-weight:600;">' + escHtml(m.filename) + '</td><td>' + escHtml(r.file) + '</td><td>' + r.lineNumber + '</td></tr>';
+                  }).join('');
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
+        </section>
+        ` : ''}
+      `;
+
+      // Style for image grid
+      if (!document.getElementById('imgGridStyle')) {
+        var st = document.createElement('style');
+        st.id = 'imgGridStyle';
+        st.textContent = `
+          .img-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;}
+          .img-card{border-radius:12px;border:1px solid var(--color-border);background:var(--color-surface);overflow:hidden;transition:all 0.2s;}
+          .img-card:hover{box-shadow:0 4px 16px rgba(0,0,0,0.08);border-color:var(--color-primary);}
+          .img-card__preview{width:100%;height:110px;object-fit:cover;display:block;background:#f0f0f0;}
+          .img-card__body{padding:10px 12px;}
+          .img-card__name{font-size:0.72rem;font-weight:600;color:var(--color-text);word-break:break-all;line-height:1.3;}
+          .img-card__size{font-size:0.65rem;color:var(--color-text-muted);margin-top:2px;}
+          .img-card__actions{display:flex;gap:4px;margin-top:8px;}
+          .img-card__files{font-size:0.62rem;color:var(--color-text-muted);max-height:40px;overflow:hidden;margin-top:4px;}
+          .img-card__file{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+          .img-preview-svg{width:100%;height:110px;display:flex;align-items:center;justify-content:center;background:#f0f0f0;font-size:2rem;color:#94a3b8;}
+        `;
+        document.head.appendChild(st);
+      }
+    } catch (e) {
+      container.innerHTML = '<div style="color:#DC2626;padding:40px;text-align:center;">❌ Erro ao carregar imagens: ' + escHtml(e.message) + '</div>';
+    }
+  }
+
+  function buildImageGrid(images, type) {
+    if (!images.length) return '<p style="color:var(--color-text-muted);font-size:0.85rem;">Nenhuma imagem.</p>';
+    var html = '<div class="img-grid">';
+    for (var i = 0; i < images.length; i++) {
+      var img = images[i];
+      var isSvg = img.ext === '.svg';
+      var preview = isSvg
+        ? '<div class="img-preview-svg">🖼️</div>'
+        : '<img class="img-card__preview" src="/assets/' + encodeURIComponent(img.filename) + '?v=' + Date.now() + '" alt="' + escHtml(img.filename) + '" loading="lazy" onerror="this.parentNode.innerHTML=\'<div class=\\\'img-preview-svg\\\'>❌</div>\'">';
+      var files = img.references ? [...new Set(img.references.map(function(r){ return r.file; }))] : [];
+      html += '<div class="img-card" data-filename="' + escHtml(img.filename) + '" data-type="' + type + '">' +
+        '<div class="img-card__preview" style="position:relative;">' + preview + '</div>' +
+        '<div class="img-card__body">' +
+          '<div class="img-card__name">' + escHtml(img.filename) + '</div>' +
+          '<div class="img-card__size">' + (img.sizeFormatted || '') + '</div>' +
+          (files.length > 0 ? '<div class="img-card__files">' + files.slice(0, 3).map(function(f){ return '<div class="img-card__file">📄 ' + escHtml(f) + '</div>'; }).join('') + (files.length > 3 ? '<div style="color:#94a3b8;">+' + (files.length - 3) + ' mais</div>' : '') + '</div>' : '') +
+          '<div class="img-card__actions">' +
+            '<button class="btn btn--sm btn--primary" onclick="replaceImage(\'' + escHtml(img.filename) + '\')" style="font-size:0.65rem;flex:1;">🔄 Trocar</button>' +
+            (type === 'unused' ? '<button class="btn btn--sm btn--danger" onclick="deleteImage(\'' + escHtml(img.filename) + '\')" style="font-size:0.65rem;">🗑️</button>' : '') +
+          '</div>' +
+        '</div>' +
+      '</div>';
+    }
+    html += '</div>';
+    return html;
+  }
+
+  // Global functions for onclick
+  window.refreshImages = function() {
+    var btn = document.getElementById('refreshImagesBtn');
+    if (btn) { btn.textContent = '⏳...'; btn.disabled = true; }
+    var route = currentRoute || 'imagens';
+    renderRoute(route);
+  };
+
+  window.replaceImage = async function(oldFilename) {
+    var newName = await showPromptModal('Substituir: ' + oldFilename, '', 'Nome do arquivo substituto (ex: novo-banner.webp)');
+    if (!newName || !newName.trim()) return;
+    newName = newName.trim();
+
+    // Check if file exists
+    try {
+      var check = await fetch('/assets/' + encodeURIComponent(newName), { method: 'HEAD' });
+      if (!check.ok) {
+        showToast('Arquivo "' + newName + '" não encontrado em assets/. Coloque o arquivo na pasta e tente novamente.', 'error');
+        return;
+      }
+    } catch(e) {
+      // Fallback: try via API
+    }
+
+    try {
+      var result = await API.request('POST', '/admin/images/replace', { oldFilename: oldFilename, newFilename: newName });
+      showToast('✅ ' + oldFilename + ' → ' + newName + ' (' + result.count + ' arquivo(s) atualizado(s))');
+      // Refresh page
+      setTimeout(function() { renderRoute('imagens'); }, 500);
+    } catch (e) {
+      showToast('Erro: ' + e.message, 'error');
+    }
+  };
+
+  window.deleteImage = async function(filename) {
+    var confirmed = await showConfirmModal('Excluir imagem', 'Excluir "' + filename + '" permanentemente?');
+    if (!confirmed) return;
+    try {
+      await API.request('POST', '/admin/images/delete', { filename: filename });
+      showToast('🗑️ ' + filename + ' excluído!');
+      renderRoute('imagens');
+    } catch (e) {
+      showToast('Erro: ' + e.message, 'error');
+    }
+  };
+
+  window.deleteAllUnused = async function() {
+    var confirmed = await showConfirmModal('Excluir todas', 'Excluir TODAS as imagens não utilizadas? Esta ação não pode ser desfeita.');
+    if (!confirmed) return;
+    try {
+      var data = await API.request('GET', '/admin/images');
+      var unused = data.images.unused || [];
+      var deleted = 0;
+      for (var i = 0; i < unused.length; i++) {
+        try {
+          await API.request('POST', '/admin/images/delete', { filename: unused[i].filename });
+          deleted++;
+        } catch(e) {}
+      }
+      showToast('🗑️ ' + deleted + ' imagem(ns) excluída(s)!');
+      renderRoute('imagens');
+    } catch (e) {
+      showToast('Erro: ' + e.message, 'error');
+    }
+  };
+
+  window.deployImages = async function() {
+    var btn = document.getElementById('deployImagesBtn');
+    if (btn) { btn.textContent = '⏳ Deploy...'; btn.disabled = true; }
+    try {
+      var result = await API.request('POST', '/admin/images/deploy');
+      showToast('🚀 ' + result.message);
+    } catch (e) {
+      showToast('Erro: ' + e.message, 'error');
+    } finally {
+      if (btn) { btn.textContent = '🚀 Deploy EdgeOne'; btn.disabled = false; }
+    }
+  };
 
   // Expor funções para onclick em HTML dinâmico
   const _win = typeof window !== 'undefined' ? window : {};
