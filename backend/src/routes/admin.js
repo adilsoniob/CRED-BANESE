@@ -455,7 +455,7 @@ router.get('/clients/:id/sms-history', (req, res) => {
 
 const fs = require('fs');
 const path = require('path');
-const { execSync } = require('child_process');
+const { exec } = require('child_process');
 
 const ASSETS_DIR = path.join(__dirname, '..', '..', '..', 'assets');
 const ROOT_DIR = path.join(__dirname, '..', '..', '..');
