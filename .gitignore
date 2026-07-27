@@ -30,16 +30,20 @@ Thumbs.db
 
 # EdgeOne
 .edgeone/*
-assets/unused/
 .tef_dist/*
 
 # Deploy (credenciais)
-scripts/deploy.config.json
 CREDENCIAIS.txt
 AUDITORIA_COMPLETA.md
 
-# Deploy VPS (removido)
-deploy-clean-full.cjs
+# Scripts auxiliares (deploy manual, compressão)
+deploy/
+scripts/
+__pycache__/
+
+# Assets antigos (convertidos para WebP)
+assets/*.png
+!assets/logo-app.png
 
 # Editor
 *.sublime-project
