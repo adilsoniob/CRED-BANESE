@@ -1436,7 +1436,8 @@
         renderAccountsTable(accs, summary);
         if (!window._smsLogsTimer) loadSendLogs();
       } catch (e) {
-        $('#accountsTableBody').innerHTML = '<tr><td colspan="6" style="padding:24px;text-align:center;color:#EF4444;font-size:0.78rem;">Erro: ' + escHtml(e.message) + '</td></tr>';
+        var tbody = $('#accountsTableBody');
+        if (tbody) tbody.innerHTML = '<tr><td colspan="6" style="padding:24px;text-align:center;color:#EF4444;font-size:0.78rem;">Erro: ' + escHtml(e.message) + '</td></tr>';
       }
     }
 
