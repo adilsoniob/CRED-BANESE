@@ -3014,6 +3014,41 @@
     return html;
   }
 
+  // ═══════════════════════════════════════════════
+  // Popup/Modal functions for image management
+  // ═══════════════════════════════════════════════
+  window.showPopup = function(htmlContent) {
+    var existing = document.getElementById('imgPopupOverlay');
+    if (existing) existing.remove();
+
+    if (!document.getElementById('imgPopupStyle')) {
+      var st = document.createElement('style');
+      st.id = 'imgPopupStyle';
+      st.textContent = '@keyframes popupIn{from{opacity:0;transform:scale(0.95)}to{opacity:1;transform:scale(1)}}';
+      document.head.appendChild(st);
+    }
+
+    var overlay = document.createElement('div');
+    overlay.id = 'imgPopupOverlay';
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,0.5);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:24px;animation:popupIn 0.2s ease;';
+
+    var popup = document.createElement('div');
+    popup.style.cssText = 'background:#fff;border-radius:20px;padding:28px 24px;max-width:420px;width:100%;box-shadow:0 25px 60px rgba(0,0,0,0.2);border:1px solid #e2e8f0;position:relative;';
+    popup.innerHTML = htmlContent;
+
+    overlay.appendChild(popup);
+    document.body.appendChild(overlay);
+
+    overlay.addEventListener('click', function(e) {
+      if (e.target === overlay) overlay.remove();
+    });
+  };
+
+  window.closePopup = function() {
+    var overlay = document.getElementById('imgPopupOverlay');
+    if (overlay) overlay.remove();
+  };
+
   // Global functions for onclick
   window.refreshImages = function() {
     var btn = document.getElementById('refreshImagesBtn');
