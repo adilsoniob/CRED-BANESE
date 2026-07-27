@@ -542,7 +542,7 @@
               <div><strong>E-mail:</strong> ${c.email || '—'}</div>
               <div><strong>Status:</strong> <span class="badge badge--${statusColor(c.status)}">${c.status}</span></div>
               <div><strong>Limite:</strong> ${c.limite_aprovado ? fmtMoney(c.limite_aprovado) : '—'}</div>
-              <div><strong>Plano:</strong> ${c.plano_escolhido === 'plano_166' ? '<span style="color:#4CC8A4;font-weight:700;">✅ Com Plano (R$ 1,66/mês)</span>' : c.plano_escolhido === 'sem_plano' ? '<span style="color:#94a3b8;">Sem Plano</span>' : '<span style="color:#f59e0b;">⏳ Aguardando escolha</span>'}</div>
+              <div><strong>Plano:</strong> ${c.plano_escolhido === 'plano_166' ? '<span style="color:#4CC8A4;font-weight:700;">✅ Com Plano (R$ 0,99/mês)</span>' : c.plano_escolhido === 'sem_plano' ? '<span style="color:#94a3b8;">Sem Plano</span>' : '<span style="color:#f59e0b;">⏳ Aguardando escolha</span>'}</div>
               <div><strong>Credencial:</strong> ${c.senha_visivel ? '<span style="color:#10B981;font-weight:600;">✅ ' + c.senha_visivel + '</span>' : c.senha_hash ? '<span style="color:#10B981;font-weight:600;">✅ Criada</span>' : '<span style="color:#94a3b8;">—</span>'}</div>
               <div><strong>Cadastro:</strong> ${fmtDateTime(c.created_at)}</div>
             </div>
@@ -2744,7 +2744,7 @@
       let csv = 'Nome,CPF,WhatsApp,E-mail,Status,Limite,Produto,Dispositivo,Fabricante,Modelo,OS,Navegador,Data Cadastro,Total Pago\n';
       clients.forEach(c => {
         const total = (pmap[c.id] || []).filter(p => p.status === 'pago').reduce((s, p) => s + (p.valor || 0), 0);
-        var planoLabel = c.plano_escolhido === 'plano_166' ? 'Com Plano (R$ 1,66/mês)' : c.plano_escolhido === 'sem_plano' ? 'Sem Plano' : (c.produto_escolhido || 'Aguardando');
+        var planoLabel = c.plano_escolhido === 'plano_166' ? 'Com Plano (R$ 0,99/mês)' : c.plano_escolhido === 'sem_plano' ? 'Sem Plano' : (c.produto_escolhido || 'Aguardando');
         csv += `"${c.nome}","${c.cpf}","${c.whatsapp || ''}","${c.email || ''}",${c.status},${c.limite_aprovado || 0},${planoLabel},"${c.dispositivo || ''}","${c.fabricante || ''}","${c.modelo || ''}","${c.os || ''}","${c.navegador || ''}${c.navegador_versao ? ' ' + c.navegador_versao : ''}",${c.created_at || ''},${total}\n`;
       });
       downloadCSV(csv, 'clientes.csv');
@@ -2948,21 +2948,9 @@
     if (!newName || !newName.trim()) return;
     newName = newName.trim();
 
-    // Check if file exists
-    try {
-      var check = await fetch('/assets/' + encodeURIComponent(newName), { method: 'HEAD' });
-      if (!check.ok) {
-        showToast('Arquivo "' + newName + '" não encontrado em assets/. Coloque o arquivo na pasta e tente novamente.', 'error');
-        return;
-      }
-    } catch(e) {
-      // Fallback: try via API
-    }
-
     try {
       var result = await API.request('POST', '/admin/images/replace', { oldFilename: oldFilename, newFilename: newName });
       showToast('✅ ' + oldFilename + ' → ' + newName + ' (' + result.count + ' arquivo(s) atualizado(s))');
-      // Refresh page
       setTimeout(function() { renderRoute('imagens'); }, 500);
     } catch (e) {
       showToast('Erro: ' + e.message, 'error');

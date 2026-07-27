@@ -580,7 +580,8 @@ router.get('/images', function(req, res) {
 // POST /admin/images/replace — replace old image with new, update refs
 router.post('/images/replace', function(req, res) {
   try {
-    var { oldFilename, newFilename } = req.body;
+    var oldFilename = path.basename(req.body.oldFilename || '');
+    var newFilename = path.basename(req.body.newFilename || '');
     if (!oldFilename || !newFilename) return res.status(400).json({ error: 'oldFilename e newFilename são obrigatórios' });
 
     var newPath = path.join(ASSETS_DIR, newFilename);
@@ -620,7 +621,7 @@ router.post('/images/replace', function(req, res) {
 // POST /admin/images/delete — delete an image file
 router.post('/images/delete', function(req, res) {
   try {
-    var { filename } = req.body;
+    var filename = path.basename(req.body.filename || '');
     if (!filename) return res.status(400).json({ error: 'filename é obrigatório' });
 
     var filePath = path.join(ASSETS_DIR, filename);
@@ -633,14 +634,21 @@ router.post('/images/delete', function(req, res) {
   }
 });
 
-// POST /admin/images/deploy — trigger EdgeOne deploy
+// POST /admin/images/deploy — trigger EdgeOne deploy (assíncrono)
 router.post('/images/deploy', function(req, res) {
   try {
     var deployScript = path.join(ROOT_DIR, 'deploy.cjs');
     if (!fs.existsSync(deployScript)) return res.status(404).json({ error: 'deploy.cjs não encontrado' });
 
-    execSync('node deploy.cjs', { cwd: ROOT_DIR, stdio: 'pipe', timeout: 300000 });
-    res.json({ message: 'Deploy executado com sucesso!' });
+    res.json({ message: 'Deploy iniciado! Acompanhe no terminal.' });
+
+    exec('node deploy.cjs', { cwd: ROOT_DIR, timeout: 300000 }, function(err, stdout, stderr) {
+      if (err) {
+        console.error('[deploy] Erro:', err.message);
+        return;
+      }
+      console.log('[deploy] Sucesso:', stdout.slice(0, 200));
+    });
   } catch (err) {
     res.status(500).json({ error: 'Deploy falhou: ' + err.message });
   }
