@@ -2920,6 +2920,7 @@
                 '<div style="font-size:0.72rem;color:#64748b;margin-top:4px;">' + (heroFile.sizeFormatted || '') + ' · ' + (heroFile.references ? heroFile.references.length + ' referência(s)' : '') + '</div>' +
                 '<div style="margin-top:10px;display:flex;gap:8px;">' +
                   '<button class="btn btn--primary btn--sm" onclick="uploadAndReplace(\'' + encodeURIComponent(heroFile.filename) + '\')" style="font-size:0.78rem;">📤 Substituir Hero</button>' +
+                  '<button class="btn btn--success btn--sm" onclick="uploadAsHero()" style="font-size:0.78rem;">🏠 Upload como Hero</button>' +
                   '<button class="btn btn--ghost btn--sm" onclick="deployImages()" style="font-size:0.78rem;">🚀 Deploy</button>' +
                 '</div>' +
               '</div>' +
@@ -3253,7 +3254,71 @@
     });
   };
 
-  // Nova replaceImage com opção de upload
+  // Upload direto como Hero Banner (substitui hero-bane.webp)
+  window.uploadAsHero = function() {
+    showPopup(
+      '<div style="text-align:center;padding:4px 0;">' +
+        '<div style="font-size:2rem;margin-bottom:8px;">🏠</div>' +
+        '<div style="font-size:1rem;font-weight:700;color:#0f172a;margin-bottom:4px;">Upload como Hero Banner</div>' +
+        '<div style="font-size:0.78rem;color:#475569;margin-bottom:16px;">A imagem enviada substituirá <strong>hero-bane.webp</strong> (banner principal da landing page).</div>' +
+        '<div style="margin-bottom:16px;">' +
+          '<label for="heroUploadInput" style="display:inline-block;padding:12px 24px;border-radius:12px;border:2px dashed #059669;background:rgba(5,150,105,0.04);color:#059669;font-weight:600;font-size:0.85rem;cursor:pointer;width:100%;box-sizing:border-box;">📁 Selecionar imagem</label>' +
+          '<input type="file" id="heroUploadInput" accept="image/png,image/webp,image/jpeg,image/gif,image/svg+xml" style="display:none;">' +
+        '</div>' +
+        '<div id="heroUploadPreview" style="display:none;margin-bottom:12px;padding:8px;border-radius:8px;background:#f8fafc;border:1px solid #e2e8f0;">' +
+          '<img id="heroUploadImg" style="max-width:100%;max-height:120px;border-radius:6px;display:block;margin:0 auto;">' +
+          '<div id="heroUploadName" style="font-size:0.75rem;color:#475569;margin-top:6px;text-align:center;"></div>' +
+        '</div>' +
+        '<div id="heroUploadResult" style="display:none;padding:8px 12px;border-radius:8px;font-size:0.78rem;font-weight:600;margin-bottom:12px;"></div>' +
+        '<button class="btn btn--success" id="btnDoHeroUpload" disabled style="width:100%;padding:12px;font-size:0.85rem;">🏠 Enviar como Hero</button>' +
+      '</div>'
+    );
+    var fileInput = document.getElementById("heroUploadInput");
+    var previewArea = document.getElementById("heroUploadPreview");
+    var previewImg = document.getElementById("heroUploadImg");
+    var fileNameEl = document.getElementById("heroUploadName");
+    var uploadBtn = document.getElementById("btnDoHeroUpload");
+    var resultEl = document.getElementById("heroUploadResult");
+    var selectedFile = null;
+    fileInput.addEventListener("change", function() {
+      selectedFile = fileInput.files[0];
+      if (!selectedFile) return;
+      fileNameEl.textContent = selectedFile.name + " (" + (selectedFile.size / 1024).toFixed(1) + " KB)";
+      var reader = new FileReader();
+      reader.onload = function(e) { previewImg.src = e.target.result; };
+      reader.readAsDataURL(selectedFile);
+      previewArea.style.display = "";
+      uploadBtn.disabled = false;
+      uploadBtn.textContent = "🏠 Enviar como Hero: " + selectedFile.name;
+    });
+    uploadBtn.addEventListener("click", async function() {
+      if (!selectedFile) return;
+      uploadBtn.disabled = true;
+      uploadBtn.textContent = "⏳ Enviando...";
+      var formData = new FormData();
+      formData.append("image", selectedFile);
+      formData.append("oldFilename", "hero-bane.webp");
+      try {
+        var headers = getAuthHeaders();
+        delete headers['Content-Type']; // Let browser set multipart boundary
+        var resp = await fetch(API.getApiUrl() + "/admin/images/upload-and-replace", { method: "POST", body: formData, headers: headers });
+        var data = await resp.json();
+        if (!resp.ok) throw new Error(data.error || "Erro no upload");
+        resultEl.style.display = "";
+        resultEl.style.background = "rgba(16,185,129,0.1)";
+        resultEl.style.color = "#065F46";
+        resultEl.textContent = "✅ " + data.message;
+        setTimeout(function() { closePopup(); renderRoute(currentRoute || "imagens"); }, 1500);
+      } catch (e) {
+        uploadBtn.disabled = false;
+        uploadBtn.textContent = "🏠 Enviar como Hero";
+        resultEl.style.display = "";
+        resultEl.style.background = "rgba(239,68,68,0.08)";
+        resultEl.style.color = "#DC2626";
+        resultEl.textContent = "❌ " + (e.message || 'Falha na conexão com o servidor');
+      }
+    });
+  };
   window.replaceImage = async function(encodedFilename) {
     var oldFilename = decodeURIComponent(encodedFilename);
     showPopup(
