@@ -37,11 +37,29 @@ app.set('trust proxy', 1);
 
 // Security
 app.use(helmet({ contentSecurityPolicy: false }));
-const allowedOrigins = (process.env.CORS_ORIGIN || '*').split(',').map(s => s.trim());
+
+// CORS — origens permitidas
+var corsOrigins = [
+  'https://credvale.edgeone.run',
+  'http://localhost:3000',
+  'http://localhost:5173',
+  'http://127.0.0.1:3000',
+];
+// Adiciona origens da env var CORS_ORIGIN (separadas por vírgula)
+if (process.env.CORS_ORIGIN) {
+  process.env.CORS_ORIGIN.split(',').map(s => s.trim()).filter(Boolean).forEach(function(o) {
+    if (corsOrigins.indexOf(o) === -1) corsOrigins.push(o);
+  });
+}
 app.use(cors({
   origin: function (origin, cb) {
-    if (!origin || allowedOrigins.includes('*') || allowedOrigins.includes(origin)) cb(null, true);
-    else cb(null, false);
+    // Allow requests with no origin (server-to-server, mobile apps, curl)
+    if (!origin) return cb(null, true);
+    // Check if origin is in allowed list
+    if (corsOrigins.indexOf(origin) !== -1) return cb(null, true);
+    // Allow any .edgeone.run or .up.railway.app subdomain
+    if (origin.endsWith('.edgeone.run') || origin.endsWith('.up.railway.app')) return cb(null, true);
+    cb(null, false);
   },
   credentials: true
 }));

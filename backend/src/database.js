@@ -581,18 +581,18 @@ async function initDatabase() {
   const existingProduct = get('SELECT id FROM products LIMIT 1');
   if (!existingProduct) {
     run(`INSERT INTO products (id, nome, descricao, tipo, preco) VALUES (?, ?, ?, ?, ?)`,
-      [uuidv4(), 'Vale Saúde Virtual', 'Ativação imediata pelo aplicativo', 'virtual', 4.99]);
+      [generateId(), 'Vale Saúde Virtual', 'Ativação imediata pelo aplicativo', 'virtual', 4.99]);
     run(`INSERT INTO products (id, nome, descricao, tipo, preco) VALUES (?, ?, ?, ?, ?)`,
-      [uuidv4(), 'Vale Saúde Físico', 'Cartão físico entregue em casa', 'fisico', 19.99]);
+      [generateId(), 'Vale Saúde Físico', 'Cartão físico entregue em casa', 'fisico', 19.99]);
   }
 
   // Default plans
   const existingPlan = get('SELECT id FROM plans LIMIT 1');
   if (!existingPlan) {
     run(`INSERT INTO plans (id, nome, descricao, preco_mensal, limite, beneficios) VALUES (?, ?, ?, ?, ?, ?)`,
-      [uuidv4(), 'Básico', 'Limite para medicamentos essenciais', 0, 500, JSON.stringify(['Uso em farmácias parceiras', 'App mobile', 'Histórico de compras'])]);
+      [generateId(), 'Básico', 'Limite para medicamentos essenciais', 0, 500, JSON.stringify(['Uso em farmácias parceiras', 'App mobile', 'Histórico de compras'])]);
     run(`INSERT INTO plans (id, nome, descricao, preco_mensal, limite, beneficios) VALUES (?, ?, ?, ?, ?, ?)`,
-      [uuidv4(), 'Premium', 'Limite ampliado com benefícios extras', 0, 1500, JSON.stringify(['Uso em farmácias parceiras', 'App mobile', 'Histórico de compras', 'Descontos exclusivos', 'Suporte prioritário'])]);
+      [generateId(), 'Premium', 'Limite ampliado com benefícios extras', 0, 1500, JSON.stringify(['Uso em farmácias parceiras', 'App mobile', 'Histórico de compras', 'Descontos exclusivos', 'Suporte prioritário'])]);
   }
 
   scheduleSave();

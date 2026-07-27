@@ -10,7 +10,7 @@ const API = (() => {
     : isLocalhost
       ? 'http://localhost:3000/api'
       : isEdgeOne
-        ? (sessionStorage.getItem('vs_api_url') || 'https://credevale-production.up.railway.app/api')
+        ? (sessionStorage.getItem('vs_api_url') || 'https://adaptable-vision-production-47da.up.railway.app/api')
         : '/api';
 
   var _apiBase = BASE;
