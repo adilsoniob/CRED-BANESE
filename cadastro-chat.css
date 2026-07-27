@@ -1612,6 +1612,49 @@
   padding: 4px 0;
 }
 
+/* ---- Device info card for install failure modal ---- */
+.banese-dl-device-card {
+  background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 10px 14px;
+  margin: 8px 0;
+}
+
+.banese-dl-device-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px 0;
+  border-bottom: 1px solid rgba(0,0,0,0.04);
+  font-size: 0.78rem;
+}
+
+.banese-dl-device-row:last-child {
+  border-bottom: none;
+}
+
+.banese-dl-device-label {
+  color: #64748b;
+  font-weight: 500;
+  min-width: 90px;
+}
+
+.banese-dl-device-value {
+  color: #0f172a;
+  font-weight: 600;
+  text-align: right;
+  word-break: break-word;
+}
+
+.banese-modal--error .banese-modal-header {
+  border-radius: 16px 16px 0 0;
+}
+
+.banese-modal--error .popup-box {
+  border-color: rgba(220,38,38,0.15);
+}
+
 .banese-pre-anim {
   display: flex;
   justify-content: center;
