@@ -683,6 +683,9 @@ export default function App() {
 
                 {/* Body */}
                 <div className="px-5 pt-4 pb-5 space-y-4">
+                  {/* Title */}
+                  <h3 className="font-display font-extrabold text-[18px] text-[#1F2937] leading-tight tracking-tight">⚠️ Atenção</h3>
+
                   {/* Warning box */}
                   <div className="bg-[#FFF8E8] rounded-xl px-3.5 py-3 flex items-start gap-2.5">
                     <span className="text-sm flex-shrink-0 mt-0.5">⚠️</span>
